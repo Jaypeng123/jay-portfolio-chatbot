@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jay Peng — Chatbot Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #faf9f7;
+  --bg2: #f3f1ed;
+  --bg3: #eceae4;
+  --border: rgba(0,0,0,0.1);
+  --border2: rgba(0,0,0,0.18);
+  --text: #1a1a18;
+  --text2: #5a5a56;
+  --text3: #9a9a94;
+  --accent: #1a1a18;
+  --green: #3B6D11;
+  --green-bg: #eaf3de;
+  --red: #a32d2d;
+  --red-bg: #fcebeb;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: var(--bg);
+  border-right: 0.5px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 28px 0;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+}
+
+.sidebar-logo {
+  padding: 0 22px 28px;
+  border-bottom: 0.5px solid var(--border);
+  margin-bottom: 16px;
+}
+.logo-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 300;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.logo-sub {
+  font-size: 10px; color: var(--text3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-top: 3px;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 22px;
+  font-size: 13px; color: var(--text2);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+}
+.nav-item:hover { background: var(--bg2); color: var(--text); }
+.nav-item.active {
+  border-left-color: var(--accent);
+  background: var(--bg2);
+  color: var(--text);
+  font-weight: 400;
+}
+.nav-icon { font-size: 14px; width: 18px; text-align: center; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px 22px 0;
+  border-top: 0.5px solid var(--border);
+}
+.publish-btn {
+  width: 100%;
+  background: var(--accent);
+  color: #faf9f7;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px; font-weight: 400;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: opacity 0.15s;
+}
+.publish-btn:hover { opacity: 0.78; }
+.publish-btn.published {
+  background: var(--green);
+}
+
+/* Main */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  padding: 36px 40px;
+  max-width: 900px;
+}
+
+.page-header {
+  margin-bottom: 28px;
+}
+.page-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px; font-weight: 300;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.page-sub { font-size: 12.5px; color: var(--text3); margin-top: 4px; }
+
+/* Sections */
+.section { display: none; }
+.section.active { display: block; }
+
+/* Card */
+.card {
+  background: #fff;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 11px; font-weight: 400;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 14px;
+}
+
+/* Form elements */
+label {
+  display: block;
+  font-size: 11px; color: var(--text3);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 6px; margin-top: 14px;
+}
+label:first-child { margin-top: 0; }
+
+input[type=text], input[type=email], input[type=tel], textarea, select {
+  width: 100%;
+  background: var(--bg);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 9px 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px; font-weight: 300;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Tags */
+.tags-wrap {
+  display: flex; flex-wrap: wrap; gap: 7px;
+  background: var(--bg);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  min-height: 42px;
+  cursor: text;
+}
+.tag {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--bg3);
+  border-radius: 20px;
+  padding: 3px 10px 3px 12px;
+  font-size: 12px; color: var(--text2);
+}
+.tag-del {
+  cursor: pointer; color: var(--text3);
+  font-size: 14px; line-height: 1;
+}
+.tag-del:hover { color: var(--red); }
+.tag-input {
+  border: none; background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 300;
+  color: var(--text); outline: none;
+  min-width: 80px; flex: 1;
+  padding: 2px 4px;
+}
+
+/* Project list */
+.proj-list { display: flex; flex-direction: column; gap: 10px; }
+.proj-item {
+  background: var(--bg);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.proj-drag { color: var(--text3); cursor: grab; font-size: 16px; margin-top: 2px; }
+.proj-body { flex: 1; }
+.proj-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.proj-name { font-size: 14px; font-weight: 400; color: var(--text); }
+.proj-type {
+  font-size: 10px; color: var(--text3);
+  border: 0.5px solid var(--border2);
+  border-radius: 20px; padding: 2px 8px;
+}
+.proj-desc { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+.proj-actions { display: flex; gap: 6px; margin-top: 8px; }
+.btn-sm {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px; font-weight: 300;
+  padding: 4px 12px; border-radius: 20px;
+  cursor: pointer; transition: all 0.15s;
+  border: 0.5px solid var(--border2);
+  background: transparent; color: var(--text2);
+}
+.btn-sm:hover { background: var(--bg3); color: var(--text); }
+.btn-sm.danger:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+
+.add-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  border: 0.5px dashed var(--border2);
+  border-radius: var(--radius-sm);
+  font-size: 13px; color: var(--text3);
+  cursor: pointer; transition: all 0.15s;
+  margin-top: 10px;
+  background: transparent; width: 100%;
+  font-family: 'DM Sans', sans-serif; font-weight: 300;
+}
+.add-btn:hover { border-color: var(--accent); color: var(--text); background: var(--bg); }
+
+/* KB list */
+.kb-list { display: flex; flex-direction: column; gap: 10px; }
+.kb-item {
+  background: var(--bg);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+.kb-topic { font-size: 12px; font-weight: 400; color: var(--text); margin-bottom: 6px; }
+.kb-keys { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+.kb-reply { font-size: 12.5px; color: var(--text2); line-height: 1.55; white-space: pre-line; }
+
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 100;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 28px;
+  width: 520px; max-width: 95vw;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+}
+.modal-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px; font-weight: 300;
+  margin-bottom: 20px;
+}
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.btn-cancel {
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 300;
+  padding: 9px 20px; border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border2); background: transparent;
+  color: var(--text2); cursor: pointer;
+}
+.btn-save {
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 300;
+  padding: 9px 20px; border-radius: var(--radius-sm);
+  border: none; background: var(--accent);
+  color: #faf9f7; cursor: pointer;
+}
+.btn-save:hover { opacity: 0.8; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  background: var(--accent); color: #faf9f7;
+  font-size: 13px; padding: 11px 20px;
+  border-radius: var(--radius-sm);
+  opacity: 0; transform: translateY(8px);
+  transition: all 0.25s; pointer-events: none;
+  z-index: 200;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* Export panel */
+.upload-zone {
+  border: 0.5px dashed var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--bg);
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--bg2);
+}
+.upload-icon {
+  font-size: 24px; color: var(--text3); margin-bottom: 8px;
+  line-height: 1;
+}
+.upload-label { font-size: 13.5px; color: var(--text2); margin-bottom: 4px; }
+.upload-hint { font-size: 11px; color: var(--text3); letter-spacing: 0.04em; }
+
+.src-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+.src-icon {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 400; flex-shrink: 0;
+}
+.src-icon.url { background: #e6f1fb; color: #185FA5; }
+.src-icon.pdf { background: var(--red-bg); color: var(--red); }
+.src-icon.txt { background: var(--green-bg); color: var(--green); }
+.src-icon.docx { background: #E6F1FB; color: #185FA5; }
+.src-body { flex: 1; min-width: 0; }
+.src-name { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.src-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.src-status {
+  font-size: 10.5px; padding: 2px 9px; border-radius: 20px; flex-shrink: 0;
+}
+.src-status.ready { background: var(--green-bg); color: var(--green); }
+.src-status.processing { background: #faeeda; color: #854F0B; }
+
+/* Export panel */
+.export-panel {
+  background: #1a1a18; color: #e8e6e0;
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  font-family: monospace; font-size: 11.5px;
+  line-height: 1.7; white-space: pre-wrap;
+  word-break: break-all; max-height: 400px;
+  overflow-y: auto; display: none;
+}
+.export-panel.open { display: block; }
+.export-actions { display: flex; gap: 10px; margin-bottom: 12px; }
+.btn-outline {
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 300;
+  padding: 7px 16px; border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border2); background: transparent;
+  color: var(--text2); cursor: pointer; transition: all 0.15s;
+}
+.btn-outline:hover { background: var(--bg3); }
+.btn-primary {
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 300;
+  padding: 7px 16px; border-radius: var(--radius-sm);
+  border: none; background: var(--accent);
+  color: #faf9f7; cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-name">Jay Peng</div>
+    <div class="logo-sub">Chatbot Admin</div>
+  </div>
+  <div class="nav-item active" onclick="showSection('profile')">
+    <span class="nav-icon">◎</span> Profile
+  </div>
+  <div class="nav-item" onclick="showSection('experience')">
+    <span class="nav-icon">◈</span> Experience
+  </div>
+  <div class="nav-item" onclick="showSection('projects')">
+    <span class="nav-icon">◧</span> Projects
+  </div>
+  <div class="nav-item" onclick="showSection('skills')">
+    <span class="nav-icon">◉</span> Skills
+  </div>
+  <div class="nav-item" onclick="showSection('kb')">
+    <span class="nav-icon">◫</span> Q&amp;A Knowledge
+  </div>
+  <div class="nav-item" onclick="showSection('sources')">
+    <span class="nav-icon">⊕</span> Data Sources
+  </div>
+  <div class="nav-item" onclick="showSection('export')">
+    <span class="nav-icon">↗</span> Export
+  </div>
+  <div class="sidebar-footer">
+    <button class="publish-btn" id="publish-btn" onclick="publishToChatbot()">
+      <span id="publish-label">⬆ Publish to Chatbot</span>
+    </button>
+    <div id="publish-status" style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px;letter-spacing:0.03em;min-height:14px"></div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Profile -->
+  <div class="section active" id="sec-profile">
+    <div class="page-header">
+      <div class="page-title">Profile</div>
+      <div class="page-sub">Basic personal information shown in the chatbot header and intro.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Identity</div>
+      <div class="two-col">
+        <div>
+          <label>Full Name</label>
+          <input type="text" id="p-name" value="Jay Peng"/>
+        </div>
+        <div>
+          <label>Title / Role</label>
+          <input type="text" id="p-title" value="UX/UI Designer"/>
+        </div>
+      </div>
+      <div class="two-col">
+        <div>
+          <label>Location</label>
+          <input type="text" id="p-location" value="Taipei, Taiwan"/>
+        </div>
+        <div>
+          <label>Avatar Initial</label>
+          <input type="text" id="p-initial" value="J"/>
+        </div>
+      </div>
+      <label>Status Badge</label>
+      <input type="text" id="p-status" value="✦ Available"/>
+    </div>
+    <div class="card">
+      <div class="card-title">Contact</div>
+      <div class="two-col">
+        <div>
+          <label>Email</label>
+          <input type="email" id="p-email" value="peng19990213@gmail.com"/>
+        </div>
+        <div>
+          <label>Phone</label>
+          <input type="tel" id="p-phone" value="+886 988154045"/>
+        </div>
+      </div>
+      <label>Website / Portfolio</label>
+      <input type="text" id="p-website" value="https://jayportfolio.framer.website/"/>
+    </div>
+    <div class="card">
+      <div class="card-title">Opening Message</div>
+      <label>Intro (first message visitors see)</label>
+      <textarea id="p-intro" rows="3">Hey! I'm Jay — a UX/UI designer based in Taipei with 2+ years of experience across 10+ projects. Feel free to ask me about my work, skills, or how we might collaborate!</textarea>
+      <label>About Me (for chatbot context)</label>
+      <textarea id="p-about" rows="3">台北的 UX/UI 設計師，擁有 2 年以上經驗，參與超過 10 個專案。專注於易用性設計，致力於串連使用者需求與商業目標。</textarea>
+    </div>
+  </div>
+
+  <!-- Experience -->
+  <div class="section" id="sec-experience">
+    <div class="page-header">
+      <div class="page-title">Work Experience</div>
+      <div class="page-sub">Your career history. These entries inform the chatbot's knowledge about your background.</div>
+    </div>
+    <div id="exp-list" class="proj-list"></div>
+    <button class="add-btn" onclick="openExpModal()">+ Add Experience</button>
+  </div>
+
+  <!-- Projects -->
+  <div class="section" id="sec-projects">
+    <div class="page-header">
+      <div class="page-title">Portfolio Projects</div>
+      <div class="page-sub">Works shown in the chatbot when visitors ask about your portfolio.</div>
+    </div>
+    <div id="proj-list" class="proj-list"></div>
+    <button class="add-btn" onclick="openProjModal()">+ Add Project</button>
+  </div>
+
+  <!-- Skills -->
+  <div class="section" id="sec-skills">
+    <div class="page-header">
+      <div class="page-title">Skills</div>
+      <div class="page-sub">Add or remove skills. Press Enter or comma to add a tag.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">UX / Design Skills</div>
+      <div class="tags-wrap" id="tags-ux" onclick="focusTagInput('tags-ux')"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tools & Software</div>
+      <div class="tags-wrap" id="tags-tools" onclick="focusTagInput('tags-tools')"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Collaboration Brands</div>
+      <div class="tags-wrap" id="tags-brands" onclick="focusTagInput('tags-brands')"></div>
+    </div>
+  </div>
+
+  <!-- KB -->
+  <div class="section" id="sec-kb">
+    <div class="page-header">
+      <div class="page-title">Q&amp;A Knowledge Base</div>
+      <div class="page-sub">Define how the chatbot answers specific questions by keyword matching.</div>
+    </div>
+    <div id="kb-list" class="kb-list"></div>
+    <button class="add-btn" onclick="openKBModal()">+ Add Q&amp;A Entry</button>
+  </div>
+
+  <!-- Sources -->
+  <div class="section" id="sec-sources">
+    <div class="page-header">
+      <div class="page-title">Data Sources</div>
+      <div class="page-sub">Add multiple URLs or upload multiple documents as knowledge sources.</div>
+    </div>
+
+    <!-- URL Sources -->
+    <div class="card">
+      <div class="card-title">Website URLs</div>
+      <div id="url-fields" style="display:flex;flex-direction:column;gap:10px"></div>
+      <button class="add-btn" onclick="addURLField()" style="margin-top:10px">+ Add another URL</button>
+    </div>
+
+    <!-- File Upload -->
+    <div class="card">
+      <div class="card-title">Documents</div>
+      <div class="upload-zone" id="upload-zone"
+        onclick="triggerFileInput()"
+        ondragover="dragOver(event)"
+        ondragleave="dragLeave(event)"
+        ondrop="dropFile(event)">
+        <div class="upload-icon">↑</div>
+        <div class="upload-label">Drop multiple files here, or click to select</div>
+        <div class="upload-hint">PDF · TXT · DOCX — select as many as you need</div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,.txt,.docx" multiple style="display:none" onchange="handleFiles(event)"/>
+      <div id="file-list" style="margin-top:14px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+    <!-- Extracted preview -->
+    <div class="card" id="extracted-card" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div class="card-title" style="margin:0">Extracted Content Preview</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px" id="extracted-source-name"></div>
+        </div>
+        <button class="btn-sm" onclick="importToKB()">→ Import to Q&amp;A</button>
+      </div>
+      <div id="extracted-preview" style="font-size:13px;color:var(--text2);line-height:1.7;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;max-height:300px;overflow-y:auto;white-space:pre-wrap"></div>
+    </div>
+  </div>
+
+  <!-- Export -->
+  <div class="section" id="sec-export">
+    <div class="page-header">
+      <div class="page-title">Export</div>
+      <div class="page-sub">Generate the data file and paste it into <strong>chatbot.html</strong>.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Instructions</div>
+      <p style="font-size:13.5px;color:var(--text2);line-height:1.7;">
+        1. Click <strong>Generate</strong> to build the latest <code>CHATBOT_DATA</code> object.<br/>
+        2. Copy the generated code.<br/>
+        3. Open <strong>chatbot.html</strong> and replace the existing <code>const CHATBOT_DATA = {...}</code> block with the copied code.<br/>
+        4. Save and open chatbot.html in your browser — done!
+      </p>
+    </div>
+    <div class="export-actions">
+      <button class="btn-primary" onclick="generateExport()">Generate</button>
+      <button class="btn-outline" id="copy-btn" onclick="copyExport()" style="display:none">Copy to Clipboard</button>
+    </div>
+    <div class="export-panel" id="export-panel"></div>
+  </div>
+
+</div>
+
+<!-- Experience Modal -->
+<div class="modal-overlay" id="exp-modal">
+  <div class="modal">
+    <div class="modal-title" id="exp-modal-title">Add Experience</div>
+    <label>Company Name</label>
+    <input type="text" id="em-company" placeholder="e.g. Cloud Interactive"/>
+    <label>Job Title</label>
+    <input type="text" id="em-role" placeholder="e.g. UX/UI Designer"/>
+    <label>Period</label>
+    <input type="text" id="em-period" placeholder="e.g. May 2022 – Aug 2024"/>
+    <label>Description</label>
+    <textarea id="em-desc" rows="4" placeholder="Describe your responsibilities and achievements..."></textarea>
+    <input type="hidden" id="em-index" value="-1"/>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('exp-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveExp()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Project Modal -->
+<div class="modal-overlay" id="proj-modal">
+  <div class="modal">
+    <div class="modal-title" id="proj-modal-title">Add Project</div>
+    <label>Project Name</label>
+    <input type="text" id="pm-name" placeholder="e.g. B2B Order Platform"/>
+    <label>Platform / Type</label>
+    <input type="text" id="pm-type" placeholder="e.g. Desktop Website"/>
+    <label>Client / Brand</label>
+    <input type="text" id="pm-client" placeholder="e.g. iOrder"/>
+    <label>Description</label>
+    <textarea id="pm-desc" rows="3" placeholder="Brief description of what you designed..."></textarea>
+    <label>URL (optional)</label>
+    <input type="text" id="pm-url" placeholder="https://..."/>
+    <input type="hidden" id="pm-index" value="-1"/>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('proj-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveProj()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- KB Modal -->
+<div class="modal-overlay" id="kb-modal">
+  <div class="modal">
+    <div class="modal-title" id="kb-modal-title">Add Q&amp;A Entry</div>
+    <label>Topic Name</label>
+    <input type="text" id="km-topic" placeholder="e.g. About Me"/>
+    <label>Trigger Keywords (comma separated)</label>
+    <input type="text" id="km-keys" placeholder="e.g. yourself, about, who, background"/>
+    <label>Chatbot Reply</label>
+    <textarea id="km-reply" rows="5" placeholder="What Jay would say when these keywords are detected..."></textarea>
+    <input type="hidden" id="km-index" value="-1"/>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('kb-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveKB()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+let DATA = {
+  experience: [
+    { company: "富士康疆域醫療 (Foxconn JIANGYU MEDICAL)", role: "UI Designer", period: "2024年8月 — 至今", desc: "擔任醫療機器人專案的 DRI，負責競品分析、需求釐清、現場調研與 UI 設計風格提案，同時把關整體 UI 輸出品質。合作品牌：國泰健檢、Nurabot、疆域智慧健康管理平台。" },
+    { company: "雲端互動 (Cloud Interactive)", role: "UX/UI Designer", period: "2022年5月 — 2024年8月", desc: "參與 Qarbon 資料中心平台（一站式平台＋後台管理系統）、Cooler Master 硬體控制 UX、iOrder B2B 電商（含 A/B 測試）、Visualized.io 投資人簡報、以及內部 Access Control 與審批系統設計。" }
+  ],
+  projects: [
+    { name: "B2B 訂單平台", type: "Desktop Website", client: "iOrder", desc: "利害關係人訪談、線框稿、使用者流程、A/B 測試", url: "https://jayportfolio.framer.website/Qlink" },
+    { name: "後台管理系統", type: "Desktop Back-Stage", client: "Qarbon", desc: "資料中心產業平台的後端管理介面", url: "https://jayportfolio.framer.website/Qarbon_Administrator-Console" },
+    { name: "AI 創作軟體平台", type: "Desktop Web", client: "Visualized.io", desc: "投資人簡報用的 Mockup 與 Prototype", url: "https://jayportfolio.framer.website/Visualized.io" },
+    { name: "硬體控制系統", type: "Desktop App", client: "Cooler Master", desc: "UX 設計：線框稿、使用者流程、規格定義", url: "https://jayportfolio.framer.website/Master-Control" },
+    { name: "B2C 電商網站", type: "Desktop Website", client: "Acer Gaming", desc: "Acer Gaming 消費者電商網站設計", url: "https://jayportfolio.framer.website/Acer-Gaming" },
+    { name: "智慧辦公系統", type: "Mobile App", client: "Goodsip", desc: "智慧辦公室管理系統行動應用程式設計", url: "https://jayportfolio.framer.website/GoodSip" },
+    { name: "導航智能系統", type: "Mobile App", client: "E-Parking", desc: "導航智能系統行動應用程式", url: "https://jayportfolio.framer.website/E-parking" },
+    { name: "寵物社群 App", type: "Mobile App", client: "Plus-it", desc: "寵物愛好者社群媒體應用程式", url: "https://jayportfolio.framer.website/Plus-it" },
+    { name: "醫療輔助系統", type: "Mobile App", client: "Codia", desc: "醫療輔助行動應用程式", url: "https://jayportfolio.framer.website/Codia" }
+  ],
+  skills: {
+    ux: ["競品分析","使用者旅程","功能地圖","資訊架構","線框稿","UI Mockup","原型製作","易用性測試","A/B 測試"],
+    tools: ["Figma","Adobe XD","After Effects","Framer","Notion"],
+    brands: ["Qarbon Technologies","Cooler Master","Amway","國泰健檢","Nurabot","精技電腦","HappyNet","Acer","疆域智慧健康管理平台"]
+  },
+  kb: [
+    { topic: "富士康/醫療機器人", keys: ["富士康","疆域","foxconn","jiangyu","醫療機器人","healthcare robot","nurabot","國泰","健康管理","medical","robot","機器人","醫療"], reply: "在富士康疆域醫療，我擔任「醫療機器人」專案的 DRI，負責競品分析、需求釐清與現場調研，產出 UI 設計風格提案，也把關整個團隊的 UI 輸出品質。合作品牌有國泰健檢、Nurabot 和疆域智慧健康管理平台。" },
+    { topic: "雲端互動時期", keys: ["cloud interactive","雲端互動","qarbon","cooler master","iorder","visualized","acer gaming","data center","資料中心","access control","審批"], reply: "在雲端互動期間，我做過 Qarbon 資料中心的一站式平台與後台系統、Cooler Master 硬體控制 UX、iOrder B2B 電商（含 A/B 測試）、Visualized.io 的投資人簡報原型，以及內部的 Access Control 與審批系統。" },
+    { topic: "技能與工具", keys: ["skill","技能","擅長","專長","會什麼","能力","tool","figma","wireframe","原型","工具","software","ux process","mockup","usability","a/b","prototype","competitive","競品"], reply: "我的核心技能涵蓋整個 UX 流程：競品分析、使用者旅程、功能地圖、資訊架構、線框稿、UI Mockup、原型製作、易用性測試與 A/B 測試。主要工具是 Figma、Framer、Adobe XD、After Effects、Notion。" },
+    { topic: "職稱", keys: ["title","job title","role","position","職稱","職務","你是做什麼的","工作內容","designer","設計師"], reply: "我是 UX/UI 設計師。目前在富士康疆域醫療擔任 UI Designer，之前在雲端互動也是擔任 UX/UI Designer。" },
+    { topic: "公司名稱", keys: ["company","company name","在哪間","哪個公司","服務哪","employer","organization","機構","哪裡上班"], reply: "我目前服務於富士康旗下的疆域醫療（JIANGYU MEDICAL），之前待過雲端互動（Cloud Interactive）。" },
+    { topic: "年齡", keys: ["age","幾歲","年齡","生日","出生","born","how old","歲數","birth"], reply: "我是 1999 年生，目前 26 歲 😊" },
+    { topic: "學歷", keys: ["education","學歷","學校","大學","畢業","university","degree","study","雲科","yunlin","industrial design","工業設計","明道","菲律賓","philippine","baguio","cebu"], reply: "我畢業於國立雲林科技大學工業設計系（2017–2021），高中就讀明道高中廣告設計科。也曾於 2018、2019 年暑假赴菲律賓進行英語密集訓練。" },
+    { topic: "姓名", keys: ["name","叫什麼","你叫","名字","full name","what is your name","who are you","你好","hello","hi"], reply: "我叫 Jay Peng（彭柏維），台北的 UX/UI 設計師，很高興認識你！" },
+    { topic: "地點", keys: ["location","where are you","city","國家","在哪","哪裡","台灣","taipei","taiwan","remote","遠端"], reply: "我在台灣台北 🇹🇼 主要在台北工作，也接受遠端合作。" },
+    { topic: "目前工作", keys: ["工作","在哪工作","現在","目前","任職","上班","哪間公司","職位","服務於"], reply: "我目前在富士康疆域醫療擔任 UI 設計師，主要負責醫療機器人的介面設計。之前在雲端互動待了兩年多，做過資料中心、電商、硬體控制等各類型專案。" },
+    { topic: "自我介紹", keys: ["yourself","about","who are","背景","自介","介紹","你是誰","jay是","tell me","簡介","profile","overview"], reply: "我是 Jay Peng，台北的 UX/UI 設計師，2 年以上經驗、10+ 個專案。我專注於易用性設計，讓產品在使用者需求與商業目標之間取得平衡。" },
+    { topic: "作品集", keys: ["project","portfolio","作品","案例","做過","專案","設計過","有哪些","show me","b2b","b2c","mobile app","desktop","電商","app","平台","管理系統","goodsip","codia","e-parking"], reply: "（系統自動從作品集清單產生）" },
+    { topic: "聯絡方式", keys: ["contact","reach","email","phone","hire","聯絡","合作","怎麼找","信箱","電話","找你","reach out","get in touch","諮詢","寄信"], reply: "歡迎直接聯絡我！📧 peng19990213@gmail.com　📞 +886 988154045　或點右上角的 Contact Me 留下你的資訊 😊" },
+    { topic: "設計流程", keys: ["process","流程","怎麼設計","設計方式","approach","research","調研","how do you","design method","workflow","設計思維","design thinking","sprint"], reply: "我的設計流程從研究開始 — 訪談、競品分析、現場調研，接著規劃使用者旅程與資訊架構，進入線框稿與原型，最後用易用性測試或 A/B 測試驗證成效。整個過程中會和 PM、工程師緊密協作。" },
+    { topic: "工作經歷", keys: ["experience","經歷","工作過","待過","歷史","career","background","work history","previous","履歷","resume","cv"], reply: "（系統自動從工作經歷產生）" },
+    { topic: "合作品牌", keys: ["brand","client","合作品牌","客戶","合作過","collaborated","amway","happynet","精技","brands you"], reply: "合作過的品牌有：Qarbon Technologies、Cooler Master、Amway、國泰健檢、Nurabot、精技電腦、HappyNet、Acer、疆域智慧健康管理平台。" },
+    { topic: "求職/接案狀態", keys: ["available","open","freelance","接案","有空","機會","recruit","求職","looking","hiring","job","找工作","work together","合作機會"], reply: "目前有在找新機會！無論是全職或接案都歡迎，點右上角 Contact Me 或直接寄信給我 peng19990213@gmail.com" },
+    { topic: "作品集網站", keys: ["website","portfolio link","framer","網站","作品集網址","link","url","where can i see","看更多","case study"], reply: "作品集在這裡：https://jayportfolio.framer.website/ ，裡面有完整的專案案例可以參考。" },
+    { topic: "AI/投資人專案", keys: ["ai","人工智慧","investor","投資人","pitch","創業","startup","visualized","visualized.io"], reply: "我在雲端互動期間參與了 Visualized.io 這個 AI 創作軟體平台，負責製作 Mockup 與 Prototype，用於向投資人進行簡報，協助公司爭取融資。" },
+    { topic: "語言能力", keys: ["language","語言","english","中文","chinese","speak","溝通","bilingual","英文程度","會說英文"], reply: "我的母語是中文，英文具備工作溝通能力，曾赴菲律賓進行英語密集訓練，能流暢閱讀英文文件與跨國協作。" },
+    { topic: "年資/資歷", keys: ["years","幾年","年資","經驗多久","多久","how long","how many years","資歷","senior","junior","mid"], reply: "我有 2 年以上的設計工作經驗，從 2022 年開始在職，參與超過 10 個專案，橫跨 B2B 平台、行動應用、硬體控制介面等不同領域。" }
+  ]
+};
+
+// ── NAV ───────────────────────────────────────────────────────────────────
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ── EXPERIENCE ────────────────────────────────────────────────────────────
+function renderExp() {
+  const el = document.getElementById('exp-list');
+  el.innerHTML = '';
+  DATA.experience.forEach((e, i) => {
+    el.innerHTML += `
+    <div class="proj-item">
+      <div class="proj-body">
+        <div class="proj-name-row">
+          <span class="proj-name">${e.company}</span>
+          <span class="proj-type">${e.role}</span>
+          <span class="proj-type" style="color:var(--text3)">${e.period}</span>
+        </div>
+        <div class="proj-desc">${e.desc}</div>
+        <div class="proj-actions">
+          <button class="btn-sm" onclick="openExpModal(${i})">Edit</button>
+          <button class="btn-sm danger" onclick="deleteExp(${i})">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+function openExpModal(idx = -1) {
+  document.getElementById('em-index').value = idx;
+  if (idx >= 0) {
+    const e = DATA.experience[idx];
+    document.getElementById('exp-modal-title').textContent = 'Edit Experience';
+    document.getElementById('em-company').value = e.company;
+    document.getElementById('em-role').value = e.role;
+    document.getElementById('em-period').value = e.period;
+    document.getElementById('em-desc').value = e.desc;
+  } else {
+    document.getElementById('exp-modal-title').textContent = 'Add Experience';
+    ['em-company','em-role','em-period','em-desc'].forEach(id => document.getElementById(id).value = '');
+  }
+  document.getElementById('exp-modal').classList.add('open');
+}
+
+function saveExp() {
+  const idx = parseInt(document.getElementById('em-index').value);
+  const entry = {
+    company: document.getElementById('em-company').value,
+    role: document.getElementById('em-role').value,
+    period: document.getElementById('em-period').value,
+    desc: document.getElementById('em-desc').value
+  };
+  if (idx >= 0) DATA.experience[idx] = entry;
+  else DATA.experience.push(entry);
+  renderExp();
+  closeModal('exp-modal');
+  toast('Experience saved');
+}
+
+function deleteExp(i) {
+  if (confirm('Delete this experience?')) { DATA.experience.splice(i, 1); renderExp(); toast('Deleted'); }
+}
+
+// ── PROJECTS ──────────────────────────────────────────────────────────────
+function renderProjects() {
+  const el = document.getElementById('proj-list');
+  el.innerHTML = '';
+  DATA.projects.forEach((p, i) => {
+    el.innerHTML += `
+    <div class="proj-item">
+      <div class="proj-body">
+        <div class="proj-name-row">
+          <span class="proj-name">${p.name}</span>
+          <span class="proj-type">${p.type}</span>
+          ${p.client ? `<span class="proj-type" style="color:var(--text3)">${p.client}</span>` : ''}
+        </div>
+        <div class="proj-desc">${p.desc || ''}</div>
+        <div class="proj-actions">
+          <button class="btn-sm" onclick="openProjModal(${i})">Edit</button>
+          <button class="btn-sm danger" onclick="deleteProj(${i})">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+function openProjModal(idx = -1) {
+  document.getElementById('pm-index').value = idx;
+  if (idx >= 0) {
+    const p = DATA.projects[idx];
+    document.getElementById('proj-modal-title').textContent = 'Edit Project';
+    document.getElementById('pm-name').value = p.name;
+    document.getElementById('pm-type').value = p.type;
+    document.getElementById('pm-client').value = p.client || '';
+    document.getElementById('pm-desc').value = p.desc || '';
+    document.getElementById('pm-url').value = p.url || '';
+  } else {
+    document.getElementById('proj-modal-title').textContent = 'Add Project';
+    ['pm-name','pm-type','pm-client','pm-desc','pm-url'].forEach(id => document.getElementById(id).value = '');
+  }
+  document.getElementById('proj-modal').classList.add('open');
+}
+
+function saveProj() {
+  const idx = parseInt(document.getElementById('pm-index').value);
+  const entry = {
+    name: document.getElementById('pm-name').value,
+    type: document.getElementById('pm-type').value,
+    client: document.getElementById('pm-client').value,
+    desc: document.getElementById('pm-desc').value,
+    url: document.getElementById('pm-url').value
+  };
+  if (idx >= 0) DATA.projects[idx] = entry;
+  else DATA.projects.push(entry);
+  renderProjects();
+  closeModal('proj-modal');
+  toast('Project saved');
+}
+
+function deleteProj(i) {
+  if (confirm('Delete this project?')) { DATA.projects.splice(i, 1); renderProjects(); toast('Deleted'); }
+}
+
+// ── SKILLS / TAGS ─────────────────────────────────────────────────────────
+function renderTags(wrapperId, items) {
+  const wrap = document.getElementById(wrapperId);
+  wrap.innerHTML = '';
+  items.forEach((item, i) => {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.innerHTML = `${item}<span class="tag-del" onclick="removeTag('${wrapperId}',${i})">×</span>`;
+    wrap.appendChild(tag);
+  });
+  const input = document.createElement('input');
+  input.className = 'tag-input';
+  input.placeholder = 'Add...';
+  input.id = wrapperId + '-input';
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = input.value.trim().replace(/,$/, '');
+      if (val) { getTagArr(wrapperId).push(val); renderTags(wrapperId, getTagArr(wrapperId)); }
+    }
+    if (e.key === 'Backspace' && input.value === '') {
+      const arr = getTagArr(wrapperId);
+      if (arr.length) { arr.pop(); renderTags(wrapperId, arr); }
+    }
+  };
+  wrap.appendChild(input);
+}
+
+function focusTagInput(wrapperId) {
+  const inp = document.getElementById(wrapperId + '-input');
+  if (inp) inp.focus();
+}
+
+function getTagArr(wrapperId) {
+  if (wrapperId === 'tags-ux') return DATA.skills.ux;
+  if (wrapperId === 'tags-tools') return DATA.skills.tools;
+  return DATA.skills.brands;
+}
+
+function removeTag(wrapperId, idx) {
+  getTagArr(wrapperId).splice(idx, 1);
+  renderTags(wrapperId, getTagArr(wrapperId));
+}
+
+// ── KNOWLEDGE BASE ────────────────────────────────────────────────────────
+function renderKB() {
+  const el = document.getElementById('kb-list');
+  el.innerHTML = '';
+  DATA.kb.forEach((k, i) => {
+    el.innerHTML += `
+    <div class="kb-item">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div class="kb-topic">${k.topic}</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-sm" onclick="openKBModal(${i})">Edit</button>
+          <button class="btn-sm danger" onclick="deleteKB(${i})">Delete</button>
+        </div>
+      </div>
+      <div class="kb-keys">Keywords: ${k.keys.join(', ')}</div>
+      <div class="kb-reply">${k.reply}</div>
+    </div>`;
+  });
+}
+
+function openKBModal(idx = -1) {
+  document.getElementById('km-index').value = idx;
+  if (idx >= 0) {
+    const k = DATA.kb[idx];
+    document.getElementById('kb-modal-title').textContent = 'Edit Q&A Entry';
+    document.getElementById('km-topic').value = k.topic;
+    document.getElementById('km-keys').value = k.keys.join(', ');
+    document.getElementById('km-reply').value = k.reply;
+  } else {
+    document.getElementById('kb-modal-title').textContent = 'Add Q&A Entry';
+    ['km-topic','km-keys','km-reply'].forEach(id => document.getElementById(id).value = '');
+  }
+  document.getElementById('kb-modal').classList.add('open');
+}
+
+function saveKB() {
+  const idx = parseInt(document.getElementById('km-index').value);
+  const entry = {
+    topic: document.getElementById('km-topic').value,
+    keys: document.getElementById('km-keys').value.split(',').map(s => s.trim()).filter(Boolean),
+    reply: document.getElementById('km-reply').value
+  };
+  if (idx >= 0) DATA.kb[idx] = entry;
+  else DATA.kb.push(entry);
+  renderKB();
+  closeModal('kb-modal');
+  toast('Q&A entry saved');
+}
+
+function deleteKB(i) {
+  if (confirm('Delete this entry?')) { DATA.kb.splice(i, 1); renderKB(); toast('Deleted'); }
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────
+function collectProfile() {
+  return {
+    name: document.getElementById('p-name').value,
+    title: document.getElementById('p-title').value,
+    location: document.getElementById('p-location').value,
+    initial: document.getElementById('p-initial').value,
+    status: document.getElementById('p-status').value,
+    email: document.getElementById('p-email').value,
+    phone: document.getElementById('p-phone').value,
+    website: document.getElementById('p-website').value,
+    intro: document.getElementById('p-intro').value,
+    about: document.getElementById('p-about').value
+  };
+}
+
+function generateExport() {
+  const profile = collectProfile();
+  const out = {
+    profile,
+    experience: DATA.experience,
+    projects: DATA.projects,
+    skills: DATA.skills,
+    kb: DATA.kb
+  };
+  const code = `const CHATBOT_DATA = ${JSON.stringify(out, null, 2)};`;
+  document.getElementById('export-panel').textContent = code;
+  document.getElementById('export-panel').classList.add('open');
+  document.getElementById('copy-btn').style.display = 'inline-block';
+}
+
+function copyExport() {
+  const text = document.getElementById('export-panel').textContent;
+  navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard!'));
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── SOURCES ───────────────────────────────────────────────────────────────
+let SOURCES = { urls: [], files: [] };
+let extractedText = '';
+
+function renderURLs() {
+  const el = document.getElementById('url-list');
+  if (!SOURCES.urls.length) {
+    el.innerHTML = '<div style="font-size:12.5px;color:var(--text3);padding:8px 0">No URLs added yet.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  SOURCES.urls.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'src-item';
+    div.innerHTML = `
+      <div class="src-icon url">URL</div>
+      <div class="src-body">
+        <div class="src-name">${item.url}</div>
+        <div class="src-meta">Added ${item.date}</div>
+      </div>
+      <span class="src-status ready">Saved</span>
+      <button class="btn-sm danger" style="margin-left:8px" onclick="removeURL(${i})">Remove</button>`;
+    el.appendChild(div);
+  });
+}
+
+// ── URL FIELDS ────────────────────────────────────────────────────────────
+function renderURLFields() {
+  const container = document.getElementById('url-fields');
+  container.innerHTML = '';
+  SOURCES.urls.forEach((item, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;align-items:center';
+    row.innerHTML = `
+      <div style="flex:1">
+        ${i === 0 ? '<label style="margin-top:0">URL ' + (i+1) + '</label>' : '<label>URL ' + (i+1) + '</label>'}
+        <input type="text" value="${item.url}" placeholder="https://" oninput="SOURCES.urls[${i}].url=this.value" style="width:100%"/>
+      </div>
+      <button class="btn-sm danger" onclick="removeURLField(${i})" style="margin-top:${i===0?'18':'14'}px;flex-shrink:0">✕</button>`;
+    container.appendChild(row);
+  });
+  // Always show at least one empty field
+  if (SOURCES.urls.length === 0) {
+    addURLField();
+  }
+}
+
+function addURLField() {
+  SOURCES.urls.push({ url: '', date: new Date().toLocaleDateString() });
+  renderURLFields();
+  // Focus the new input
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('#url-fields input[type=text]');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }, 50);
+}
+
+function removeURLField(i) {
+  SOURCES.urls.splice(i, 1);
+  if (SOURCES.urls.length === 0) SOURCES.urls.push({ url: '', date: new Date().toLocaleDateString() });
+  renderURLFields();
+}
+
+// ── PUBLISH ───────────────────────────────────────────────────────────────
+function publishToChatbot() {
+  const btn = document.getElementById('publish-btn');
+  const label = document.getElementById('publish-label');
+  const status = document.getElementById('publish-status');
+
+  // Collect latest profile data from inputs
+  const profile = collectProfile();
+  const payload = {
+    profile,
+    experience: DATA.experience,
+    projects: DATA.projects,
+    skills: DATA.skills,
+    kb: DATA.kb,
+    sources: {
+      urls: SOURCES.urls.filter(u => u.url.trim()),
+      files: SOURCES.files.map(f => ({ name: f.name, size: f.size, date: f.date }))
+    },
+    publishedAt: new Date().toISOString()
+  };
+
+  try {
+    localStorage.setItem('JAY_CHATBOT_DATA', JSON.stringify(payload));
+
+    // Visual feedback
+    label.textContent = '✓ Published';
+    btn.classList.add('published');
+    const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    status.textContent = 'Last published at ' + t;
+
+    toast('Published! Open chatbot.html to see changes.');
+
+    setTimeout(() => {
+      label.textContent = '⬆ Publish to Chatbot';
+      btn.classList.remove('published');
+    }, 3000);
+  } catch(e) {
+    toast('Publish failed — localStorage may not be available.');
+  }
+}
+
+// Check if there's already published data
+(function checkPublishStatus() {
+  try {
+    const saved = localStorage.getItem('JAY_CHATBOT_DATA');
+    if (saved) {
+      const d = JSON.parse(saved);
+      const t = new Date(d.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('publish-status').textContent = 'Last published at ' + t;
+    }
+  } catch(e) {}
+})();
+
+function removeURL(i) {
+  SOURCES.urls.splice(i, 1); renderURLs(); toast('Removed');
+}
+
+function renderFiles() {
+  const el = document.getElementById('file-list');
+  if (!SOURCES.files.length) {
+    el.innerHTML = '<div style="font-size:12.5px;color:var(--text3);padding:8px 0">No files uploaded yet.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  SOURCES.files.forEach((item, i) => {
+    const ext = item.name.split('.').pop().toLowerCase();
+    const iconColor = ext === 'pdf' ? 'pdf' : ext === 'txt' ? 'txt' : 'docx';
+    const div = document.createElement('div');
+    div.className = 'src-item';
+    div.innerHTML = `
+      <div class="src-icon ${iconColor}">${ext.toUpperCase()}</div>
+      <div class="src-body">
+        <div class="src-name">${item.name}</div>
+        <div class="src-meta">${item.size} · ${item.date}</div>
+      </div>
+      <span class="src-status ${item.ready ? 'ready' : 'processing'}" id="fstatus-${i}">${item.ready ? 'Ready' : 'Loading…'}</span>
+      <button class="btn-sm" style="margin-left:8px" onclick="previewFile(${i})">Preview</button>
+      <button class="btn-sm danger" onclick="removeFile(${i})">Remove</button>`;
+    el.appendChild(div);
+  });
+}
+
+function triggerFileInput() {
+  const inp = document.getElementById('file-input');
+  inp.value = '';
+  inp.click();
+}
+
+function handleFiles(e) {
+  processFiles(Array.from(e.target.files));
+  e.target.value = '';
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.add('drag-over');
+}
+function dragLeave() {
+  document.getElementById('upload-zone').classList.remove('drag-over');
+}
+function dropFile(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  processFiles(Array.from(e.dataTransfer.files));
+}
+
+function processFiles(files) {
+  const allowed = ['pdf', 'txt', 'docx'];
+  let added = 0;
+  files.forEach(file => {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!allowed.includes(ext)) { toast(`Skipped — unsupported: ${file.name}`); return; }
+    if (SOURCES.files.find(f => f.name === file.name)) { toast(`Already added: ${file.name}`); return; }
+    const sizeStr = file.size < 1024 * 1024
+      ? Math.round(file.size / 1024) + ' KB'
+      : (file.size / 1024 / 1024).toFixed(1) + ' MB';
+    const entry = { name: file.name, size: sizeStr, date: new Date().toLocaleDateString(), file, text: '', ready: false };
+    SOURCES.files.push(entry);
+    const idx = SOURCES.files.length - 1;
+    added++;
+
+    if (ext === 'txt') {
+      const r = new FileReader();
+      r.onload = ev => { SOURCES.files[idx].text = ev.target.result; SOURCES.files[idx].ready = true; renderFiles(); };
+      r.readAsText(file);
+    } else if (ext === 'pdf') {
+      const r = new FileReader();
+      r.onload = ev => {
+        const raw = ev.target.result;
+        let strings = [], cur = '';
+        for (let j = 0; j < raw.length; j++) {
+          const c = raw.charCodeAt(j);
+          if (c >= 32 && c < 127) { cur += raw[j]; }
+          else { if (cur.length > 5) strings.push(cur); cur = ''; }
+        }
+        if (cur.length > 5) strings.push(cur);
+        const readable = strings.filter(s => /[a-zA-Z]{3,}/.test(s)).join('\n');
+        SOURCES.files[idx].text = readable || `[PDF] ${file.name} — no readable text extracted. Try saving as TXT first.`;
+        SOURCES.files[idx].ready = true;
+        renderFiles();
+      };
+      r.readAsBinaryString(file);
+    } else {
+      SOURCES.files[idx].text = `[DOCX] ${file.name} — open "Preview" and copy text manually into Q&A.`;
+      SOURCES.files[idx].ready = true;
+      renderFiles();
+    }
+  });
+
+  renderFiles();
+  if (added > 0) toast(`${added} file${added > 1 ? 's' : ''} added`);
+}
+
+function previewFile(i) {
+  const item = SOURCES.files[i];
+  if (!item.ready) { toast('Still loading, please wait…'); return; }
+  extractedText = item.text;
+  const nameEl = document.getElementById('extracted-source-name');
+  if (nameEl) nameEl.textContent = item.name;
+  document.getElementById('extracted-preview').textContent =
+    item.text
+      ? item.text.slice(0, 4000) + (item.text.length > 4000 ? '\n\n… (truncated to 4000 chars)' : '')
+      : 'No content available.';
+  document.getElementById('extracted-card').style.display = 'block';
+  document.getElementById('extracted-card').scrollIntoView({ behavior: 'smooth' });
+}
+
+function removeFile(i) {
+  SOURCES.files.splice(i, 1);
+  renderFiles();
+  toast('File removed');
+}
+
+function importToKB() {
+  if (!extractedText) return;
+  document.getElementById('km-index').value = -1;
+  document.getElementById('kb-modal-title').textContent = 'Import from Source';
+  document.getElementById('km-topic').value = 'Imported Content';
+  document.getElementById('km-keys').value = 'portfolio, about, work, background';
+  document.getElementById('km-reply').value = extractedText.slice(0, 800);
+  document.getElementById('kb-modal').classList.add('open');
+  toast('Content pre-filled — review and save');
+}
+
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+renderExp();
+renderProjects();
+renderTags('tags-ux', DATA.skills.ux);
+renderTags('tags-tools', DATA.skills.tools);
+renderTags('tags-brands', DATA.skills.brands);
+renderKB();
+renderURLs();
+renderFiles();
+</script>
+</body>
+</html>
