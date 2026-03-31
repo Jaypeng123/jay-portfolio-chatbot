@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jay Peng — Chatbot Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf9f7;--bg2:#f3f1ed;--bg3:#eceae4;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --text:#1a1a18;--text2:#5a5a56;--text3:#9a9a94;
+  --accent:#1a1a18;--green:#3B6D11;--green-bg:#eaf3de;
+  --red:#a32d2d;--red-bg:#fcebeb;
+  --radius:10px;--radius-sm:6px;
+}
+body{font-family:'DM Sans',sans-serif;font-weight:300;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+
+.sidebar{width:220px;min-height:100vh;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:28px 0;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
+.sidebar-logo{padding:0 22px 28px;border-bottom:0.5px solid var(--border);margin-bottom:16px}
+.logo-name{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;letter-spacing:0.02em}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-top:3px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 22px;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all 0.15s;user-select:none}
+.nav-item:hover{background:var(--bg2);color:var(--text)}
+.nav-item.active{border-left-color:var(--accent);background:var(--bg2);color:var(--text);font-weight:400}
+.nav-icon{font-size:14px;width:18px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:16px 22px 0;border-top:0.5px solid var(--border)}
+.publish-btn{width:100%;background:var(--accent);color:#faf9f7;border:none;border-radius:var(--radius-sm);padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:400;cursor:pointer;letter-spacing:0.03em;transition:all 0.15s}
+.publish-btn:hover{opacity:0.78}
+.publish-btn.success{background:var(--green)}
+#publish-status{font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px;letter-spacing:0.03em;min-height:14px}
+
+.main{margin-left:220px;flex:1;padding:36px 40px;max-width:900px}
+.section{display:none}
+.section.active{display:block}
+.page-header{margin-bottom:28px}
+.page-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;letter-spacing:0.01em}
+.page-sub{font-size:12.5px;color:var(--text3);margin-top:4px}
+
+.card{background:#fff;border:0.5px solid var(--border);border-radius:var(--radius);padding:22px 24px;margin-bottom:16px}
+.card-title{font-size:11px;font-weight:400;letter-spacing:0.07em;text-transform:uppercase;color:var(--text3);margin-bottom:14px}
+
+label{display:block;font-size:11px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;margin-top:14px}
+label:first-child{margin-top:0}
+input[type=text],input[type=email],input[type=tel],textarea,select{width:100%;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:9px 13px;font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:300;color:var(--text);outline:none;transition:border-color 0.15s}
+input:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:80px;line-height:1.6}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* Upload zone */
+.upload-zone{border:0.5px dashed var(--border2);border-radius:var(--radius-sm);padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.15s;background:var(--bg)}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:var(--bg2)}
+.upload-icon{font-size:24px;color:var(--text3);margin-bottom:8px;line-height:1}
+.upload-label{font-size:13.5px;color:var(--text2);margin-bottom:4px}
+.upload-hint{font-size:11px;color:var(--text3);letter-spacing:0.04em}
+
+.doc-item{display:flex;align-items:center;gap:10px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px}
+.doc-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:400;flex-shrink:0;background:var(--red-bg);color:var(--red)}
+.doc-body{flex:1;min-width:0}
+.doc-name{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.doc-status{font-size:10.5px;padding:2px 9px;border-radius:20px;flex-shrink:0}
+.doc-status.uploading{background:#faeeda;color:#854F0B}
+.doc-status.done{background:var(--green-bg);color:var(--green)}
+.doc-status.error{background:var(--red-bg);color:var(--red)}
+
+.btn-sm{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:300;padding:4px 12px;border-radius:20px;cursor:pointer;transition:all 0.15s;border:0.5px solid var(--border2);background:transparent;color:var(--text2)}
+.btn-sm:hover{background:var(--bg3);color:var(--text)}
+.btn-sm.danger:hover{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+
+.toast{position:fixed;bottom:28px;right:28px;background:var(--accent);color:#faf9f7;font-size:13px;padding:11px 20px;border-radius:var(--radius-sm);opacity:0;transform:translateY(8px);transition:all 0.25s;pointer-events:none;z-index:200}
+.toast.show{opacity:1;transform:translateY(0)}
+
+.status-bar{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;font-size:12.5px;color:var(--text2);margin-top:12px;display:none}
+.status-bar.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-name">Jay Peng</div>
+    <div class="logo-sub">Chatbot Admin</div>
+  </div>
+  <div class="nav-item active" onclick="showSection('profile',this)"><span class="nav-icon">◎</span> Profile</div>
+  <div class="nav-item" onclick="showSection('docs',this)"><span class="nav-icon">⊕</span> PDF 文件</div>
+  <div class="nav-item" onclick="showSection('status',this)"><span class="nav-icon">◈</span> 系統狀態</div>
+  <div class="sidebar-footer">
+    <button class="publish-btn" id="publish-btn" onclick="publishProfile()">⬆ 發布個人資料</button>
+    <div id="publish-status"></div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Profile -->
+  <div class="section active" id="sec-profile">
+    <div class="page-header">
+      <div class="page-title">Profile</div>
+      <div class="page-sub">基本個人資訊，按「發布個人資料」後同步到 chatbot。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Identity</div>
+      <div class="two-col">
+        <div><label>Full Name</label><input type="text" id="p-name" value="Jay Peng"/></div>
+        <div><label>Title / Role</label><input type="text" id="p-title" value="UX/UI Designer"/></div>
+      </div>
+      <div class="two-col">
+        <div><label>Location</label><input type="text" id="p-location" value="Taipei, Taiwan"/></div>
+        <div><label>Avatar Initial</label><input type="text" id="p-initial" value="J"/></div>
+      </div>
+      <label>Status Badge</label>
+      <input type="text" id="p-status" value="✦ Available"/>
+    </div>
+    <div class="card">
+      <div class="card-title">Contact</div>
+      <div class="two-col">
+        <div><label>Email</label><input type="email" id="p-email" value="peng19990213@gmail.com"/></div>
+        <div><label>Phone</label><input type="tel" id="p-phone" value="+886 988154045"/></div>
+      </div>
+      <label>Website</label>
+      <input type="text" id="p-website" value="https://jayportfolio.framer.website/"/>
+    </div>
+    <div class="card">
+      <div class="card-title">Opening Message</div>
+      <label>Intro（chatbot 開場白）</label>
+      <textarea id="p-intro" rows="2">Hey! I'm Jay — a UX/UI designer based in Taipei. Feel free to ask me anything!</textarea>
+    </div>
+  </div>
+
+  <!-- PDF Docs -->
+  <div class="section" id="sec-docs">
+    <div class="page-header">
+      <div class="page-title">PDF 文件</div>
+      <div class="page-sub">上傳 PDF 後，chatbot 會根據文件內容回答訪客問題。支援多個文件。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">上傳文件</div>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+        <div class="upload-icon">↑</div>
+        <div class="upload-label">拖曳或點擊上傳 PDF</div>
+        <div class="upload-hint">支援多個 PDF 檔案 · 上傳後自動同步到 chatbot</div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf" multiple style="display:none" onchange="handleFiles(event)"/>
+    </div>
+    <div id="doc-list"></div>
+  </div>
+
+  <!-- Status -->
+  <div class="section" id="sec-status">
+    <div class="page-header">
+      <div class="page-title">系統狀態</div>
+      <div class="page-sub">目前 Firebase 上的資料狀況。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Firebase 連線</div>
+      <div id="firebase-status" style="font-size:13.5px;color:var(--text2)">檢查中...</div>
+    </div>
+    <div class="card">
+      <div class="card-title">已上傳文件</div>
+      <div id="doc-status" style="font-size:13.5px;color:var(--text2)">載入中...</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+// ── Firebase Config ────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAzHyihEw4sixNSjcGJPB0C1T9Ta3pQEvs",
+  authDomain: "jay-portfolio-chatbot.firebaseapp.com",
+  projectId: "jay-portfolio-chatbot",
+  storageBucket: "jay-portfolio-chatbot.firebasestorage.app",
+  messagingSenderId: "331817217479",
+  appId: "1:331817217479:web:db2578024947ce5da53de2"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window.db = db;
+window.firestoreModules = { doc, setDoc, collection, getDocs, deleteDoc, serverTimestamp };
+
+// Check connection
+document.getElementById('firebase-status').innerHTML = '<span style="color:var(--green)">✓ 已連線到 Firebase</span>';
+loadDocs();
+
+// ── Nav ─────────────────────────────────────────────────────────────────────
+window.showSection = function(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  el.classList.add('active');
+  if (id === 'status') loadDocs();
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer;
+window.toast = function(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Publish Profile ──────────────────────────────────────────────────────────
+window.publishProfile = async function() {
+  const btn = document.getElementById('publish-btn');
+  const status = document.getElementById('publish-status');
+  const profile = {
+    name: document.getElementById('p-name').value,
+    title: document.getElementById('p-title').value,
+    location: document.getElementById('p-location').value,
+    initial: document.getElementById('p-initial').value,
+    status: document.getElementById('p-status').value,
+    email: document.getElementById('p-email').value,
+    phone: document.getElementById('p-phone').value,
+    website: document.getElementById('p-website').value,
+    intro: document.getElementById('p-intro').value,
+    updatedAt: window.firestoreModules.serverTimestamp()
+  };
+  try {
+    btn.textContent = '發布中...';
+    const { doc: fsDoc, setDoc: fsSet } = window.firestoreModules;
+    await fsSet(fsDoc(window.db, 'config', 'profile'), profile);
+    btn.textContent = '✓ 已發布';
+    btn.classList.add('success');
+    const t = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    status.textContent = '上次發布 ' + t;
+    toast('個人資料已同步到 chatbot！');
+    setTimeout(() => { btn.textContent = '⬆ 發布個人資料'; btn.classList.remove('success'); }, 3000);
+  } catch(e) {
+    toast('發布失敗：' + e.message);
+    btn.textContent = '⬆ 發布個人資料';
+  }
+}
+
+// ── File Upload ──────────────────────────────────────────────────────────────
+window.dragOver = function(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag-over'); }
+window.dragLeave = function() { document.getElementById('upload-zone').classList.remove('drag-over'); }
+window.dropFile = function(e) { e.preventDefault(); document.getElementById('upload-zone').classList.remove('drag-over'); processFiles(Array.from(e.dataTransfer.files)); }
+window.handleFiles = function(e) { processFiles(Array.from(e.target.files)); }
+
+async function processFiles(files) {
+  for (const file of files) {
+    if (!file.name.endsWith('.pdf')) { toast(file.name + ' 不是 PDF'); continue; }
+    const itemId = 'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+    addDocItem(itemId, file.name, (file.size/1024/1024).toFixed(1)+' MB', 'uploading', '上傳中...');
+    try {
+      const text = await extractPdfText(file);
+      const { doc: fsDoc, setDoc: fsSet, serverTimestamp: ts } = window.firestoreModules;
+      await fsSet(fsDoc(window.db, 'documents', itemId), {
+        name: file.name,
+        size: file.size,
+        text: text,
+        uploadedAt: ts()
+      });
+      updateDocStatus(itemId, 'done', '✓ 已同步');
+      toast(file.name + ' 上傳成功！');
+    } catch(e) {
+      updateDocStatus(itemId, 'error', '✗ 失敗');
+      toast('上傳失敗：' + e.message);
+    }
+  }
+}
+
+async function extractPdfText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const raw = e.target.result;
+      const strings = [];
+      let current = '';
+      for (let i = 0; i < raw.length; i++) {
+        const c = raw.charCodeAt(i);
+        if (c >= 32 && c < 127) { current += raw[i]; }
+        else { if (current.length > 4) strings.push(current); current = ''; }
+      }
+      const text = strings.filter(s => /[a-zA-Z\u4e00-\u9fff]/.test(s) && s.length > 4).join(' ');
+      resolve(text || '（無法萃取文字，請確認 PDF 非掃描圖片版本）');
+    };
+    reader.onerror = reject;
+    reader.readAsBinaryString(file);
+  });
+}
+
+function addDocItem(id, name, size, statusClass, statusText) {
+  const list = document.getElementById('doc-list');
+  const div = document.createElement('div');
+  div.className = 'doc-item'; div.id = id;
+  div.innerHTML = `
+    <div class="doc-icon">PDF</div>
+    <div class="doc-body">
+      <div class="doc-name">${name}</div>
+      <div class="doc-meta">${size}</div>
+    </div>
+    <span class="doc-status ${statusClass}" id="status-${id}">${statusText}</span>
+    <button class="btn-sm danger" onclick="deleteDoc('${id}')">刪除</button>`;
+  list.appendChild(div);
+}
+
+function updateDocStatus(id, statusClass, statusText) {
+  const el = document.getElementById('status-' + id);
+  if (el) { el.className = 'doc-status ' + statusClass; el.textContent = statusText; }
+}
+
+window.deleteDoc = async function(id) {
+  if (!confirm('刪除此文件？')) return;
+  try {
+    const { doc: fsDoc, deleteDoc: fsDel } = window.firestoreModules;
+    await fsDel(fsDoc(window.db, 'documents', id));
+    document.getElementById(id)?.remove();
+    toast('已刪除');
+    loadDocs();
+  } catch(e) { toast('刪除失敗'); }
+}
+
+// ── Load Docs ────────────────────────────────────────────────────────────────
+async function loadDocs() {
+  try {
+    const { collection: col, getDocs: gDocs } = window.firestoreModules;
+    const snap = await gDocs(col(window.db, 'documents'));
+    const statusEl = document.getElementById('doc-status');
+    if (snap.empty) {
+      statusEl.textContent = '目前沒有上傳任何文件';
+    } else {
+      statusEl.innerHTML = snap.docs.map(d => {
+        const data = d.data();
+        const kb = (data.text?.length || 0);
+        return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)">
+          <span>${data.name}</span>
+          <span style="color:var(--text3);font-size:12px">${kb.toLocaleString()} 字元</span>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    document.getElementById('doc-status').textContent = '載入失敗：' + e.message;
+  }
+}
+</script>
+</body>
+</html>
