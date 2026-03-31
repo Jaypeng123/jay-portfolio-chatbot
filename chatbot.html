@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jay Peng — Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf9f7;--bg2:#f3f1ed;--bg3:#eceae4;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --text:#1a1a18;--text2:#5a5a56;--text3:#9a9a94;
+  --green:#3B6D11;--radius:10px;--radius-sm:6px;
+}
+body{font-family:'DM Sans',sans-serif;font-weight:300;background:var(--bg);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.chat{background:#fff;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;height:620px;width:100%;max-width:480px}
+.hdr{padding:16px 20px 13px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.av{width:42px;height:42px;border-radius:50%;border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;color:var(--text);background:var(--bg2);flex-shrink:0}
+.hi{flex:1}
+.hn{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:300;letter-spacing:0.02em}
+.hs{font-size:10.5px;color:var(--text3);letter-spacing:0.07em;text-transform:uppercase;margin-top:2px}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.badge{font-size:10px;color:var(--green);border:0.5px solid #639922;border-radius:20px;padding:3px 9px}
+.contact-btn{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:300;background:var(--text);color:var(--bg);border:none;border-radius:20px;padding:5px 13px;cursor:pointer;transition:opacity .15s;letter-spacing:0.03em}
+.contact-btn:hover{opacity:.75}
+.msgs{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+.msgs::-webkit-scrollbar{width:3px}
+.msgs::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.msg{display:flex;flex-direction:column;gap:3px;max-width:84%}
+.msg.bot{align-self:flex-start}
+.msg.usr{align-self:flex-end}
+.lbl{font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text3)}
+.msg.usr .lbl{text-align:right}
+.bbl{padding:10px 14px;font-size:13.5px;line-height:1.7;color:var(--text)}
+.msg.bot .bbl{background:var(--bg2);border:0.5px solid var(--border);border-radius:4px 14px 14px 14px;white-space:pre-line}
+.msg.usr .bbl{background:var(--text);color:var(--bg);border-radius:14px 4px 14px 14px}
+.typing{display:flex;gap:5px;align-items:center;padding:13px 14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:4px 14px 14px 14px;width:fit-content}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:pulse 1.4s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes pulse{0%,80%,100%{opacity:.3}40%{opacity:1}}
+.qrs{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.qr{font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:300;color:var(--text2);border:0.5px solid var(--border2);background:#fff;border-radius:20px;padding:5px 12px;cursor:pointer;transition:all .15s}
+.qr:hover{background:var(--bg2);color:var(--text)}
+.inp-row{padding:12px 16px 14px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:center;flex-shrink:0}
+.inp{flex:1;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:300;background:var(--bg2);border:0.5px solid var(--border);border-radius:20px;padding:9px 16px;color:var(--text);outline:none;transition:border-color .15s}
+.inp::placeholder{color:var(--text3)}
+.inp:focus{border-color:var(--border2)}
+.sbtn{width:34px;height:34px;border-radius:50%;background:var(--text);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0}
+.sbtn:hover{opacity:.72}
+.sbtn svg{width:14px;height:14px;fill:none;stroke:var(--bg);stroke-width:2;stroke-linecap:round}
+
+/* Contact Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:var(--radius);padding:28px;width:100%;max-width:400px;box-shadow:0 12px 48px rgba(0,0,0,0.14);animation:slideUp .2s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.5}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:10.5px;letter-spacing:0.07em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.field input{width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:9px 13px;font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:300;color:var(--text);outline:none;transition:border-color .15s}
+.field input:focus{border-color:var(--text)}
+.field input.err{border-color:#a32d2d}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.btn-cancel{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:300;padding:9px 18px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer}
+.btn-send{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:300;padding:9px 20px;border-radius:var(--radius-sm);border:none;background:var(--text);color:#faf9f7;cursor:pointer;transition:opacity .15s}
+.btn-send:hover{opacity:.78}
+.success-msg{text-align:center;padding:10px 0 4px}
+.success-icon{font-size:28px;margin-bottom:8px}
+.success-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;margin-bottom:6px}
+.success-sub{font-size:13px;color:var(--text2);line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="chat">
+  <div class="hdr">
+    <div class="av" id="av">J</div>
+    <div class="hi">
+      <div class="hn" id="hdr-name">Jay Peng</div>
+      <div class="hs" id="hdr-title">UX/UI Designer · Taipei</div>
+    </div>
+    <div class="hdr-right">
+      <span class="badge" id="hdr-badge">✦ Available</span>
+      <button class="contact-btn" onclick="openContact()">Contact Me</button>
+    </div>
+  </div>
+  <div class="msgs" id="msgs"></div>
+  <div class="inp-row">
+    <input class="inp" id="inp" type="text" placeholder="Ask me anything..."/>
+    <button class="sbtn" id="sbtn">
+      <svg viewBox="0 0 16 16"><line x1="3" y1="13" x2="13" y2="3"/><polyline points="6,3 13,3 13,10"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Contact Modal -->
+<div class="modal-bg" id="modal-bg" onclick="handleBgClick(event)">
+  <div class="modal" id="modal">
+    <div id="modal-form-view">
+      <div class="modal-title">Say Hello 👋</div>
+      <div class="modal-sub">留下你的資訊，Jay 會盡快回覆你！</div>
+      <div class="field"><label>姓名 Name</label><input type="text" id="c-name" placeholder="你的名字"/></div>
+      <div class="field"><label>公司 Company</label><input type="text" id="c-company" placeholder="你的公司或機構"/></div>
+      <div class="field"><label>信箱 Email</label><input type="email" id="c-email" placeholder="your@email.com"/></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeContact()">取消</button>
+        <button class="btn-send" onclick="submitContact()">送出 →</button>
+      </div>
+    </div>
+    <div id="modal-success-view" class="success-msg" style="display:none">
+      <div class="success-icon">✦</div>
+      <div class="success-title">收到了，謝謝！</div>
+      <div class="success-sub">Jay 會透過你提供的信箱與你聯繫。<br/>期待與你合作的機會！</div>
+      <div class="modal-footer" style="justify-content:center;margin-top:16px">
+        <button class="btn-send" onclick="closeContact()">關閉</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase + Gemini -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getFirestore, doc, getDoc, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+// ── 🔑 在這裡填入你的 Gemini API Key ──────────────────────────────────────
+const GEMINI_API_KEY = '在這裡填入你的_Gemini_API_Key';
+// ──────────────────────────────────────────────────────────────────────────
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAzHyihEw4sixNSjcGJPB0C1T9Ta3pQEvs",
+  authDomain: "jay-portfolio-chatbot.firebaseapp.com",
+  projectId: "jay-portfolio-chatbot",
+  storageBucket: "jay-portfolio-chatbot.firebasestorage.app",
+  messagingSenderId: "331817217479",
+  appId: "1:331817217479:web:db2578024947ce5da53de2"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// 載入 Firebase 資料
+let profile = null;
+let docsContext = '';
+let history = [];
+
+async function loadData() {
+  try {
+    // 載入 profile
+    const profileSnap = await getDoc(doc(db, 'config', 'profile'));
+    if (profileSnap.exists()) {
+      profile = profileSnap.data();
+      document.getElementById('av').textContent = profile.initial || 'J';
+      document.getElementById('hdr-name').textContent = profile.name || 'Jay Peng';
+      document.getElementById('hdr-title').textContent = (profile.title || 'UX/UI Designer') + ' · ' + (profile.location || 'Taipei');
+      document.getElementById('hdr-badge').textContent = profile.status || '✦ Available';
+    }
+
+    // 載入所有 PDF 文字
+    const docsSnap = await getDocs(collection(db, 'documents'));
+    const texts = [];
+    docsSnap.forEach(d => {
+      const data = d.data();
+      if (data.text) texts.push(`【${data.name}】\n${data.text}`);
+    });
+    docsContext = texts.join('\n\n---\n\n');
+  } catch(e) {
+    console.error('Firebase 載入失敗:', e);
+  }
+}
+
+// ── Gemini API ──────────────────────────────────────────────────────────────
+function buildSystemPrompt() {
+  const p = profile || {};
+  const name = p.name || 'Jay Peng';
+  const title = p.title || 'UX/UI Designer';
+  const location = p.location || 'Taipei, Taiwan';
+  const email = p.email || 'peng19990213@gmail.com';
+  const phone = p.phone || '+886 988154045';
+  const website = p.website || 'https://jayportfolio.framer.website/';
+
+  let prompt = `你是 ${name}，一位 ${title}，目前在 ${location}。你正在自己的作品集網站上與訪客對話。
+
+聯絡方式：
+- Email: ${email}
+- 電話: ${phone}
+- 網站: ${website}
+
+請用訪客提問的語言回答（中文問就用中文答，英文問就用英文答）。
+回答要自然簡潔，像真人對話，2-3 句為主。
+不要使用條列式，除非訪客要求。`;
+
+  if (docsContext) {
+    prompt += `\n\n以下是你的作品集和個人資料文件，請根據這些內容回答問題：\n\n${docsContext}`;
+  }
+
+  return prompt;
+}
+
+async function askGemini(userMessage) {
+  history.push({ role: 'user', parts: [{ text: userMessage }] });
+
+  const systemPrompt = buildSystemPrompt();
+  const contents = [
+    { role: 'user', parts: [{ text: systemPrompt + '\n\n---\n請記住以上背景資料，接下來開始對話。' }] },
+    { role: 'model', parts: [{ text: '好的，我已了解所有背景資料，我就是 ' + (profile?.name || 'Jay Peng') + '，請開始提問。' }] },
+    ...history
+  ];
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 300, temperature: 0.7 } })
+    }
+  );
+
+  const data = await res.json();
+  const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '抱歉，我目前無法回答，請直接聯絡我 😊';
+  history.push({ role: 'model', parts: [{ text: reply }] });
+  return reply;
+}
+
+// ── UI ──────────────────────────────────────────────────────────────────────
+const msgsEl = document.getElementById('msgs');
+const inp = document.getElementById('inp');
+let busy = false;
+
+const QUICK = ['About Jay', '作品集', 'Skills', '聯絡方式'];
+const QUICK_MSG = ['Tell me about yourself', '你做過哪些作品？', 'What are your skills?', '怎麼聯絡你？'];
+
+function addMsg(role, text, showQR) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + (role === 'bot' ? 'bot' : 'usr');
+  const lbl = document.createElement('div');
+  lbl.className = 'lbl';
+  lbl.textContent = role === 'bot' ? (profile?.name?.split(' ')[0] || 'Jay') : 'You';
+  const bbl = document.createElement('div');
+  bbl.className = 'bbl'; bbl.textContent = text;
+  wrap.appendChild(lbl); wrap.appendChild(bbl);
+  if (showQR) {
+    const qrs = document.createElement('div'); qrs.className = 'qrs';
+    QUICK.forEach((q, i) => {
+      const b = document.createElement('button'); b.className = 'qr'; b.textContent = q;
+      b.onclick = () => { qrs.remove(); send(QUICK_MSG[i]); };
+      qrs.appendChild(b);
+    });
+    wrap.appendChild(qrs);
+  }
+  msgsEl.appendChild(wrap); msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+function showTyping() {
+  const w = document.createElement('div'); w.className = 'msg bot'; w.id = 'typ';
+  const t = document.createElement('div'); t.className = 'typing';
+  for (let i = 0; i < 3; i++) { const d = document.createElement('div'); d.className = 'dot'; t.appendChild(d); }
+  w.appendChild(t); msgsEl.appendChild(w); msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+function hideTyping() { const t = document.getElementById('typ'); if (t) t.remove(); }
+
+async function send(text) {
+  if (!text || busy) return;
+  busy = true;
+  addMsg('usr', text);
+  showTyping();
+  try {
+    const reply = await askGemini(text);
+    hideTyping();
+    addMsg('bot', reply);
+  } catch(e) {
+    hideTyping();
+    const zh = /[\u4e00-\u9fff]/.test(text);
+    addMsg('bot', zh ? '抱歉，目前連線有問題，請直接寄信給我 😊' : 'Connection issue — feel free to email me directly 😊');
+  }
+  busy = false;
+}
+
+function go() {
+  const text = inp.value.trim();
+  if (!text || busy) return;
+  inp.value = '';
+  send(text);
+}
+
+let isComposing = false;
+inp.addEventListener('compositionstart', () => { isComposing = true; });
+inp.addEventListener('compositionend', () => { isComposing = false; });
+inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !isComposing) { e.preventDefault(); go(); } });
+document.getElementById('sbtn').addEventListener('click', () => go());
+
+// ── Contact Modal ────────────────────────────────────────────────────────────
+window.openContact = function() {
+  document.getElementById('modal-form-view').style.display = 'block';
+  document.getElementById('modal-success-view').style.display = 'none';
+  ['c-name','c-company','c-email'].forEach(id => { document.getElementById(id).value = ''; document.getElementById(id).classList.remove('err'); });
+  document.getElementById('modal-bg').classList.add('open');
+}
+window.closeContact = function() { document.getElementById('modal-bg').classList.remove('open'); }
+window.handleBgClick = function(e) { if (e.target === document.getElementById('modal-bg')) window.closeContact(); }
+window.submitContact = function() {
+  const name = document.getElementById('c-name').value.trim();
+  const company = document.getElementById('c-company').value.trim();
+  const email = document.getElementById('c-email').value.trim();
+  let ok = true;
+  ['c-name','c-company','c-email'].forEach(id => document.getElementById(id).classList.remove('err'));
+  if (!name) { document.getElementById('c-name').classList.add('err'); ok = false; }
+  if (!company) { document.getElementById('c-company').classList.add('err'); ok = false; }
+  if (!email || !email.includes('@')) { document.getElementById('c-email').classList.add('err'); ok = false; }
+  if (!ok) return;
+  document.getElementById('modal-form-view').style.display = 'none';
+  document.getElementById('modal-success-view').style.display = 'block';
+  const zh = /[\u4e00-\u9fff]/.test(name + company);
+  addMsg('bot', zh ? `收到了！${name} 你好，我會盡快用 ${email} 聯繫你 😊` : `Got it, ${name}! I'll reach out to you at ${email} soon 😊`);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+await loadData();
+const intro = profile?.intro || "Hey! I'm Jay — a UX/UI designer based in Taipei. Feel free to ask me anything!";
+setTimeout(() => addMsg('bot', intro, true), 300);
+</script>
+</body>
+</html>
