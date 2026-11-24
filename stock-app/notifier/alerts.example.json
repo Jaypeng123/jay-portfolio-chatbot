@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "alerts": [
+    { "id": "a1", "code": "2345", "type": "trust_streak", "value": 3 },
+    { "id": "a2", "code": "2345", "type": "price_below", "value": 1200 },
+    { "id": "a3", "code": "2330", "type": "kd_golden", "value": null },
+    { "id": "a4", "code": "2330", "type": "stop_loss", "value": 8 }
+  ],
+  "positions": [
+    { "code": "2330", "shares": 1000, "avg": 1350.5 }
+  ]
+}

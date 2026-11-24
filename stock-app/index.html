@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>台股籌碼決策</title>
+<meta name="description" content="台股分析：K 線、三大法人與主力籌碼、交易試算、庫存損益、買賣提醒與推播" />
+<meta name="theme-color" content="#1d3a6b" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<script>
+  // 先套用主題，避免閃爍
+  try {
+    const s = JSON.parse(localStorage.getItem('twstock:settings') || '{}');
+    if (s.theme === 'light' || s.theme === 'dark') document.documentElement.dataset.theme = s.theme;
+  } catch (_) {}
+</script>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 20V4M4 20h16M8 16v-5M12 16V7M16 16v-8M20 16v-3"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2Zm13 7h.01"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm2 4h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8m4 12a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" d="M12 2v3m0 14v3M4.9 4.9l2.1 2.1m10 10 2.1 2.1M2 12h3m14 0h3M4.9 19.1 7 17M17 7l2.1-2.1"/></g></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 0 0-14.7-4.3L4 8m0-4v4h4m-4 5a8 8 0 0 0 14.7 4.3L20 16m0 4v-4h-4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></g></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><svg width="18" height="18"><use href="#i-chart"/></svg></div>
+    <div class="brand-text">台股籌碼決策<small>TW EQUITY DESK</small></div>
+  </div>
+  <div class="search">
+    <svg width="16" height="16"><use href="#i-search"/></svg>
+    <input id="search" type="search" placeholder="輸入代號或名稱，例如 2345、智邦" autocomplete="off" aria-label="搜尋股票" />
+    <div class="suggest" id="suggest" role="listbox"></div>
+  </div>
+  <div class="top-actions">
+    <span class="src-badge" id="srcBadge">連線中…</span>
+    <button class="icon-btn" id="refreshBtn" title="重新整理"><svg width="18" height="18"><use href="#i-refresh"/></svg></button>
+    <button class="icon-btn" id="themeBtn" title="切換深淺色"><svg width="18" height="18"><use href="#i-moon"/></svg></button>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="nav" id="nav">
+    <a href="#home" data-view="home"><svg width="18" height="18"><use href="#i-home"/></svg>總覽</a>
+    <a href="#stock" data-view="stock"><svg width="18" height="18"><use href="#i-chart"/></svg>個股籌碼</a>
+    <a href="#portfolio" data-view="portfolio"><svg width="18" height="18"><use href="#i-wallet"/></svg>我的庫存</a>
+    <a href="#calc" data-view="calc"><svg width="18" height="18"><use href="#i-calc"/></svg>交易試算</a>
+    <a href="#alerts" data-view="alerts"><svg width="18" height="18"><use href="#i-bell"/></svg>買賣提醒</a>
+    <a href="#settings" data-view="settings"><svg width="18" height="18"><use href="#i-gear"/></svg>設定</a>
+    <div class="nav-foot">資料來源：FinMind 開放資料（TWSE / TPEx）<br />投資有風險，訊號僅供參考</div>
+  </nav>
+
+  <main>
+    <!-- 總覽 -->
+    <section class="view" id="view-home">
+      <div class="view-head">
+        <div><h1>總覽</h1><p id="homeDate">—</p></div>
+      </div>
+      <div class="grid g-4" id="kpis"></div>
+      <div class="grid g-main" style="margin-top:16px">
+        <div class="card">
+          <div class="card-head"><h2>自選股</h2><span class="small muted">點選查看籌碼；法人單位：張</span></div>
+          <div class="table-wrap"><table id="watchTable"></table></div>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <div class="card-head"><h2>最新提醒</h2><a href="#alerts" class="small">全部</a></div>
+            <div id="homeLog"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>今日籌碼焦點</h2></div>
+            <div id="homeFocus" class="small"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 個股 -->
+    <section class="view" id="view-stock">
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+          <div>
+            <div class="quote-head"><span class="title" id="sTitle">—</span><span class="px" id="sPx">—</span><span id="sChg"></span></div>
+            <div class="quote-meta" id="sMeta"></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn sm" id="sWatch">＋ 自選</button>
+            <button class="btn sm" id="sAlert">設提醒</button>
+            <button class="btn sm" id="sCalc">試算</button>
+            <button class="btn sm primary" id="sTrade">記錄交易</button>
+          </div>
+        </div>
+      </div>
+      <div class="grid g-main">
+        <div class="card" style="padding:12px 12px 6px">
+          <div class="card-head" style="padding:4px 6px 0">
+            <div class="legend" id="maLegend"></div>
+            <div class="seg" id="rangeSeg">
+              <button data-r="60">3 月</button><button data-r="120" class="on">6 月</button><button data-r="250">1 年</button>
+            </div>
+          </div>
+          <div class="chart-box chart-main" id="cMain"></div>
+          <div class="chart-box chart-sub" id="cForeign"><div class="chart-label">外資</div></div>
+          <div class="chart-box chart-sub" id="cTrust"><div class="chart-label">投信</div></div>
+          <div class="chart-box chart-sub" id="cDealer"><div class="chart-label">自營商</div></div>
+          <div class="chart-box chart-sub" id="cMainForce"><div class="chart-label">主力（估）</div></div>
+          <div class="chart-box chart-sub" id="cRetail"><div class="chart-label">散戶（融資增減）</div></div>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <div class="card-head"><h2>籌碼統計</h2>
+              <div class="seg" id="chipSeg"><button data-n="1">1日</button><button data-n="5" class="on">5日</button><button data-n="20">20日</button><button data-n="60">60日</button></div>
+            </div>
+            <table class="chip-table" id="chipTable"></table>
+            <p class="small muted" style="margin:10px 0 0">主力（估）：免費資料無券商分點，以三大法人合計估算。散戶：以融資餘額增減代表。</p>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>多空訊號</h2><span id="scorePill"></span></div>
+            <div class="gauge"><i id="gaugeNeedle" style="left:50%"></i></div>
+            <div class="small muted" style="display:flex;justify-content:space-between"><span>偏空</span><span>中性</span><span>偏多</span></div>
+            <ul class="reasons" id="reasons"></ul>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>技術指標</h2></div>
+            <div class="ind-grid" id="indGrid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 庫存 -->
+    <section class="view" id="view-portfolio">
+      <div class="view-head">
+        <div><h1>我的庫存</h1><p>手動記錄或匯入券商／集保 CSV；成本以平均成本法計算（含手續費）</p></div>
+        <div class="btn-row">
+          <label class="btn"><input type="file" id="csvInput" accept=".csv,.txt,text/csv" hidden />匯入 CSV</label>
+          <button class="btn primary" id="addTradeBtn">＋ 新增交易</button>
+        </div>
+      </div>
+      <div class="grid g-4" id="pfKpis"></div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><h2>持股明細</h2><span class="small muted">兩平價 = 含手續費與證交稅的不賠賣價</span></div>
+        <div class="table-wrap"><table id="posTable"></table></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-head"><h2>交易紀錄</h2><button class="btn sm ghost" id="exportTrades">匯出 CSV</button></div>
+        <div class="table-wrap"><table id="tradeTable"></table></div>
+      </div>
+      <div class="notice" style="margin-top:16px">
+        <b>如何從國泰證券／集保帶入持股？</b><br />
+        國泰證券與集保「e手掌握」目前未提供第三方讀取個人庫存的公開 API，所以採「匯出 → 匯入」：
+        國泰證券網頁版／電子交易平台的「對帳單／成交明細」或「庫存查詢」可下載 CSV／Excel（Excel 請另存為 CSV）；
+        本 App 會自動辨識「股票代號、股數／張數、均價／成交價、買賣別、日期、手續費、交易稅」等欄位，並支援 Big5 編碼與民國年。
+        有「買賣別」欄位視為成交明細，沒有則視為庫存快照。
+      </div>
+    </section>
+
+    <!-- 試算 -->
+    <section class="view" id="view-calc">
+      <div class="view-head">
+        <div><h1>交易試算</h1><p>手續費 0.1425% × 折數；證交稅 一般股 0.3%、ETF 0.1%、當沖 0.15%、債券 ETF 免稅</p></div>
+        <div class="seg" id="calcSeg">
+          <button data-c="pnl" class="on">買賣損益</button><button data-c="target">兩平／目標價</button><button data-c="risk">部位風險</button><button data-c="avg">攤平</button>
+        </div>
+      </div>
+      <div class="card" id="calcCard"></div>
+    </section>
+
+    <!-- 提醒 -->
+    <section class="view" id="view-alerts">
+      <div class="view-head">
+        <div><h1>買賣提醒</h1><p>條件成立時推播通知；每條規則每天最多提醒一次</p></div>
+        <button class="btn" id="permBtn">開啟通知權限</button>
+      </div>
+      <div class="grid g-main">
+        <div class="stack">
+          <div class="card">
+            <div class="card-head"><h2>新增規則</h2></div>
+            <form class="form-grid" id="alertForm">
+              <div class="field"><label>股票代號</label><input name="code" required placeholder="2345" list="codeList" /></div>
+              <div class="field" style="grid-column: span 2"><label>條件</label><select name="type" id="alertType"></select></div>
+              <div class="field" id="alertValWrap"><label id="alertValLabel">數值</label><input name="value" type="number" step="any" /></div>
+              <button class="btn primary" type="submit">新增</button>
+            </form>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>規則清單</h2><button class="btn sm" id="checkNow">立即檢查</button></div>
+            <div class="table-wrap"><table id="alertTable"></table></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>手機即時推播（App 關閉時也能收到）</h2></div>
+            <div class="notice">
+              瀏覽器通知只在 App 開著（或背景分頁）時運作。要在 App 關閉時也收到，請使用 repo 內附的
+              <code>GitHub Actions</code> 推播服務：盤中每 5 分鐘用證交所即時行情檢查規則，並透過
+              <b>ntfy</b>（免費、免註冊，手機裝 ntfy App 訂閱主題即可）或 <b>Telegram Bot</b> 推播到手機。<br />
+              步驟：① 下方按「匯出推播設定」得到 <code>alerts.json</code> → ② 放到 repo 的 <code>stock-app/notifier/alerts.json</code> →
+              ③ 在 GitHub repo Settings → Secrets 設定 <code>NTFY_TOPIC</code>（或 <code>TELEGRAM_BOT_TOKEN</code>＋<code>TELEGRAM_CHAT_ID</code>）。詳見 <code>stock-app/README.md</code>。
+            </div>
+            <div class="btn-row" style="margin-top:12px"><button class="btn" id="exportAlerts">匯出推播設定 alerts.json</button><button class="btn ghost" id="testNotify">測試通知</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>提醒紀錄</h2><button class="btn sm ghost" id="clearLog">清除</button></div>
+          <div id="alertLog"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 設定 -->
+    <section class="view" id="view-settings">
+      <div class="view-head"><div><h1>設定</h1><p>所有資料只存在這台裝置的瀏覽器中</p></div></div>
+      <div class="grid g-2">
+        <div class="card">
+          <div class="card-head"><h2>外觀</h2></div>
+          <div class="seg" id="themeSeg"><button data-t="system">跟隨系統</button><button data-t="light">淺色</button><button data-t="dark">深色</button></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>券商手續費</h2></div>
+          <div class="form-grid">
+            <div class="field"><label>手續費折數</label><input id="setDiscount" type="number" step="0.01" min="0.1" max="1" /><span class="hint">例：6 折填 0.6，2.8 折填 0.28</span></div>
+            <div class="field"><label>整股最低手續費</label><input id="setMinFee" type="number" min="0" /></div>
+            <div class="field"><label>零股最低手續費</label><input id="setMinFeeOdd" type="number" min="0" /></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>資料來源</h2></div>
+          <div class="stack" style="gap:12px">
+            <div class="field"><label>FinMind API Token（選填）</label><input id="setToken" type="password" placeholder="未填可用，但每小時請求數較少" /><span class="hint">於 finmindtrade.com 免費註冊取得，可提高請求上限</span></div>
+            <div class="field"><label>即時報價代理網址（選填）</label><input id="setProxy" type="url" placeholder="https://your-worker.workers.dev/" /><span class="hint">瀏覽器無法直接讀取證交所即時行情；部署 repo 內 <code>notifier/quote-proxy.js</code> 到 Cloudflare Workers 後填入，即可盤中即時更新</span></div>
+            <div class="field"><label>自動更新間隔（秒）</label><input id="setRefresh" type="number" min="15" /></div>
+            <label class="check"><span class="switch"><input type="checkbox" id="setDemo" /><span></span></span>使用示範資料（離線展示用）</label>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>備份與還原</h2></div>
+          <p class="small muted" style="margin-top:0">換手機或換瀏覽器時，用備份檔把自選股、交易紀錄與提醒規則帶過去。</p>
+          <div class="btn-row">
+            <button class="btn" id="backupBtn">下載備份</button>
+            <label class="btn"><input type="file" id="restoreInput" accept=".json" hidden />還原備份</label>
+            <button class="btn danger" id="resetBtn">清除所有資料</button>
+          </div>
+          <div class="notice warn" style="margin-top:14px">本工具的訊號與提醒僅供參考，不構成投資建議。投資有風險，請謹慎評估。</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="tabbar" id="tabbar">
+  <a href="#home" data-view="home"><svg width="20" height="20"><use href="#i-home"/></svg>總覽</a>
+  <a href="#stock" data-view="stock"><svg width="20" height="20"><use href="#i-chart"/></svg>個股</a>
+  <a href="#portfolio" data-view="portfolio"><svg width="20" height="20"><use href="#i-wallet"/></svg>庫存</a>
+  <a href="#calc" data-view="calc"><svg width="20" height="20"><use href="#i-calc"/></svg>試算</a>
+  <a href="#alerts" data-view="alerts"><svg width="20" height="20"><use href="#i-bell"/></svg>提醒</a>
+  <a href="#settings" data-view="settings"><svg width="20" height="20"><use href="#i-gear"/></svg>設定</a>
+</nav>
+
+<dialog id="tradeDlg">
+  <form method="dialog" id="tradeForm" class="stack" style="gap:14px">
+    <h2>新增交易</h2>
+    <div class="seg" id="sideSeg"><button type="button" data-s="buy" class="on">買進</button><button type="button" data-s="sell">賣出</button></div>
+    <div class="form-grid">
+      <div class="field"><label>股票代號</label><input name="code" required list="codeList" /></div>
+      <div class="field"><label>日期</label><input name="date" type="date" required /></div>
+      <div class="field"><label>成交價</label><input name="price" type="number" step="any" min="0" required /></div>
+      <div class="field"><label>股數</label><input name="shares" type="number" min="1" step="1" required value="1000" /><span class="hint">1 張 = 1000 股</span></div>
+    </div>
+    <div class="small muted" id="tradePreview"></div>
+    <div class="btn-row" style="justify-content:flex-end">
+      <button class="btn ghost" value="cancel" formnovalidate>取消</button>
+      <button class="btn primary" value="ok">儲存</button>
+    </div>
+  </form>
+</dialog>
+<datalist id="codeList"></datalist>
+<div class="toast" id="toast"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

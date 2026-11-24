@@ -1,0 +1,46 @@
+name: 台股提醒推播
+
+on:
+  schedule:
+    # 台灣時間週一至週五 09:00–13:55，每 5 分鐘（GitHub 排程可能延遲數分鐘）
+    - cron: '*/5 1-5 * * 1-5'
+    # 盤後 15:30 檢查籌碼類規則（投信連買、外資買賣超）
+    - cron: '30 7 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stock-alerts
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 還原已通知狀態（同一規則一天只推一次）
+        uses: actions/cache/restore@v4
+        with:
+          path: stock-app/notifier/.state.json
+          key: alert-state-${{ github.run_id }}
+          restore-keys: alert-state-
+      - name: 檢查提醒
+        if: hashFiles('stock-app/notifier/alerts.json') != ''
+        run: node stock-app/notifier/check-alerts.mjs
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+      - name: 儲存狀態
+        if: always() && hashFiles('stock-app/notifier/.state.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: stock-app/notifier/.state.json
+          key: alert-state-${{ github.run_id }}

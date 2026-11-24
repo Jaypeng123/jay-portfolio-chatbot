@@ -1,0 +1,14 @@
+{
+  "name": "台股籌碼決策",
+  "short_name": "台股籌碼",
+  "description": "K 線、三大法人與主力籌碼、交易試算、庫存損益與買賣提醒",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#1d3a6b",
+  "lang": "zh-Hant-TW",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
