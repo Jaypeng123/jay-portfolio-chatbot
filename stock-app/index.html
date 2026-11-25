@@ -61,7 +61,7 @@
     <a href="#portfolio" data-view="portfolio"><svg width="18" height="18"><use href="#i-wallet"/></svg>我的庫存</a>
     <a href="#calc" data-view="calc"><svg width="18" height="18"><use href="#i-calc"/></svg>交易試算</a>
     <a href="#alerts" data-view="alerts"><svg width="18" height="18"><use href="#i-bell"/></svg>買賣提醒</a>
-    <a href="#settings" data-view="settings"><svg width="18" height="18"><use href="#i-gear"/></svg>設定</a>
+    <a href="#prefs" data-view="prefs"><svg width="18" height="18"><use href="#i-gear"/></svg>設定</a>
     <div class="nav-foot">資料來源：FinMind 開放資料（TWSE / TPEx）<br />投資有風險，訊號僅供參考</div>
   </nav>
 
@@ -222,7 +222,7 @@
     </section>
 
     <!-- 設定 -->
-    <section class="view" id="view-settings">
+    <section class="view" id="view-prefs">
       <div class="view-head"><div><h1>設定</h1><p>所有資料只存在這台裝置的瀏覽器中</p></div></div>
       <div class="grid g-2">
         <div class="card">
@@ -267,7 +267,7 @@
   <a href="#portfolio" data-view="portfolio"><svg width="20" height="20"><use href="#i-wallet"/></svg>庫存</a>
   <a href="#calc" data-view="calc"><svg width="20" height="20"><use href="#i-calc"/></svg>試算</a>
   <a href="#alerts" data-view="alerts"><svg width="20" height="20"><use href="#i-bell"/></svg>提醒</a>
-  <a href="#settings" data-view="settings"><svg width="20" height="20"><use href="#i-gear"/></svg>設定</a>
+  <a href="#prefs" data-view="prefs"><svg width="20" height="20"><use href="#i-gear"/></svg>設定</a>
 </nav>
 
 <dialog id="tradeDlg">
@@ -284,6 +284,15 @@
     <div class="btn-row" style="justify-content:flex-end">
       <button class="btn ghost" value="cancel" formnovalidate>取消</button>
       <button class="btn primary" value="ok">儲存</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="confirmDlg">
+  <form method="dialog" class="stack" style="gap:16px">
+    <p id="confirmMsg" style="margin:0;white-space:pre-line;line-height:1.7"></p>
+    <div class="btn-row" style="justify-content:flex-end">
+      <button class="btn ghost" value="cancel" id="confirmCancel">取消</button>
+      <button class="btn primary" value="ok" id="confirmOk">確定</button>
     </div>
   </form>
 </dialog>

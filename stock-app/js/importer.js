@@ -4,7 +4,7 @@ import { uid } from './store.js';
 export async function readFileText(file) {
   const buf = await file.arrayBuffer();
   let text = new TextDecoder('utf-8').decode(buf);
-  if (text.includes('�')) {
+  if (text.includes('\uFFFD')) {
     try { text = new TextDecoder('big5').decode(buf); } catch (_) { /* 保留 utf-8 */ }
   }
   return text.replace(/^﻿/, '');

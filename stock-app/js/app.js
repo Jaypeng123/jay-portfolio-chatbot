@@ -27,6 +27,17 @@ function toast(msg) {
   $('#toast').append(el);
   setTimeout(() => el.remove(), 3200);
 }
+/** 頁內確認框（取代 confirm()，在所有環境都能用） */
+function ask(msg, { ok = '確定', cancel = '取消', danger = false } = {}) {
+  const dlg = $('#confirmDlg');
+  $('#confirmMsg').textContent = msg;
+  $('#confirmOk').textContent = ok;
+  $('#confirmCancel').textContent = cancel;
+  $('#confirmOk').classList.toggle('danger', danger);
+  dlg.returnValue = '';
+  dlg.showModal();
+  return new Promise((resolve) => dlg.addEventListener('close', () => resolve(dlg.returnValue === 'ok'), { once: true }));
+}
 function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 function download(name, text, type = 'application/json') {
   const a = document.createElement('a');
@@ -86,7 +97,7 @@ async function render() {
     if (current.view === 'portfolio') await renderPortfolio();
     if (current.view === 'calc') renderCalc();
     if (current.view === 'alerts') renderAlerts();
-    if (current.view === 'settings') renderSettings();
+    if (current.view === 'prefs') renderSettings();
   } catch (e) {
     console.error(e);
     toast(`載入失敗：${e.message}`);
@@ -391,9 +402,9 @@ async function renderPortfolio() {
         <td class="n">${fmt(t.price)}</td><td class="n">${fmt0(t.shares)}</td><td class="n">${fmt0(amt)}</td><td class="n">${fmt0(f + tx)}</td>
         <td><button class="btn sm ghost" data-del="${esc(t.id)}">刪除</button></td></tr>`;
     }).join('')}</tbody>` : '<tbody><tr><td><div class="empty">尚無交易紀錄</div></td></tr></tbody>';
-  $('#tradeTable').onclick = (e) => {
+  $('#tradeTable').onclick = async (e) => {
     const b = e.target.closest('[data-del]'); if (!b) return;
-    if (!confirm('確定刪除這筆交易？')) return;
+    if (!(await ask('確定刪除這筆交易？', { ok: '刪除', danger: true }))) return;
     state.trades = state.trades.filter((t) => t.id !== b.dataset.del);
     persist('trades'); renderPortfolio();
   };
@@ -406,7 +417,8 @@ $('#csvInput').onchange = async (e) => {
   try {
     const { trades, kind } = toTrades(parseCSV(await readFileText(f)));
     if (!trades.length) throw new Error('沒有讀到有效資料列');
-    const replace = kind === '庫存' && state.trades.length && confirm(`讀到 ${trades.length} 檔庫存。\n按「確定」取代現有紀錄，按「取消」附加在後面。`);
+    const replace = kind === '庫存' && state.trades.length > 0
+      && await ask(`讀到 ${trades.length} 檔庫存。要取代現有的交易紀錄，還是附加在後面？`, { ok: '取代', cancel: '附加' });
     state.trades = replace ? trades : [...state.trades, ...trades];
     for (const t of trades) if (!state.watchlist.includes(t.code)) state.watchlist.push(t.code);
     persist('trades', 'watchlist');
@@ -612,8 +624,8 @@ $('#restoreInput').onchange = async (e) => {
     toast('已還原備份'); applyTheme(); render();
   } catch (err) { toast(`還原失敗：${err.message}`); }
 };
-$('#resetBtn').onclick = () => {
-  if (!confirm('確定清除所有自選股、交易紀錄、提醒與設定？此動作無法復原。')) return;
+$('#resetBtn').onclick = async () => {
+  if (!(await ask('確定清除所有自選股、交易紀錄、提醒與設定？此動作無法復原。', { ok: '全部清除', danger: true }))) return;
   Object.assign(state, { watchlist: [], trades: [], alerts: [], alertLog: [], settings: { ...DEFAULT_SETTINGS } });
   persist('watchlist', 'trades', 'alerts', 'alertLog', 'settings');
   applyTheme(); render();
