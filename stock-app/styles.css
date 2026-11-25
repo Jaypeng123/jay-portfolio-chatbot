@@ -261,3 +261,29 @@ dialog::backdrop { background: rgba(8, 14, 26, .45); }
   .quote-head .px { font-size: 26px; }
   .view-head h1 { font-size: 19px; }
 }
+
+/* ===== 釘選 ===== */
+.pin-bar { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 12px; margin-bottom: 4px; scrollbar-width: thin; }
+.pin-bar:empty { display: none; }
+.pin-chip {
+  flex-shrink: 0; display: flex; align-items: baseline; gap: 8px; padding: 7px 12px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text); font-variant-numeric: tabular-nums; transition: border-color .15s, background .15s;
+}
+.pin-chip:hover { border-color: var(--line-strong); }
+.pin-chip.on { border-color: var(--brand-2); background: var(--brand-soft); }
+.pin-chip b { font-weight: 600; }
+.pin-chip span { font-size: 12px; }
+.pin-label { flex-shrink: 0; align-self: center; font-size: 12px; color: var(--text-3); padding-right: 2px; }
+.star { border: 0; background: none; cursor: pointer; font-size: 17px; line-height: 1; padding: 4px 6px; border-radius: 6px; color: var(--text-3); }
+.star:hover { background: var(--surface-2); }
+.star.on, .star-btn[aria-pressed="true"] { color: var(--accent); }
+.star-btn[aria-pressed="true"] { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+
+/* ===== 成交量排行 ===== */
+.rank-wrap { max-height: 560px; overflow: auto; margin: 0 -18px; padding: 0 18px; }
+.rank-wrap thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.rank-wrap tr.current td { background: var(--brand-soft); }
+.rank-no { color: var(--text-3); width: 36px; }
+.vol-bar { display: block; height: 3px; border-radius: 2px; background: var(--brand-2); opacity: .45; margin-top: 4px; margin-left: auto; }
+.mkt { font-size: 10.5px; color: var(--text-3); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 6px; }
+@media (max-width: 520px) { .rank-wrap { margin: 0 -14px; padding: 0 14px; } }

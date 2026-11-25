@@ -74,7 +74,7 @@
       <div class="grid g-4" id="kpis"></div>
       <div class="grid g-main" style="margin-top:16px">
         <div class="card">
-          <div class="card-head"><h2>自選股</h2><span class="small muted">點選查看籌碼；法人單位：張</span></div>
+          <div class="card-head"><h2>釘選股</h2><span class="small muted">在個股頁或成交量排行按 ☆ 加入；法人單位：張</span></div>
           <div class="table-wrap"><table id="watchTable"></table></div>
         </div>
         <div class="stack">
@@ -92,6 +92,7 @@
 
     <!-- 個股 -->
     <section class="view" id="view-stock">
+      <div class="pin-bar" id="pinBar" aria-label="釘選股"></div>
       <div class="card" style="margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
           <div>
@@ -99,7 +100,7 @@
             <div class="quote-meta" id="sMeta"></div>
           </div>
           <div class="btn-row">
-            <button class="btn sm" id="sWatch">＋ 自選</button>
+            <button class="btn sm star-btn" id="sWatch" aria-pressed="false">☆ 釘選</button>
             <button class="btn sm" id="sAlert">設提醒</button>
             <button class="btn sm" id="sCalc">試算</button>
             <button class="btn sm primary" id="sTrade">記錄交易</button>
@@ -140,6 +141,18 @@
             <div class="ind-grid" id="indGrid"></div>
           </div>
         </div>
+      </div>
+      <div class="card" id="rankCard" style="margin-top:16px">
+        <div class="card-head">
+          <div><h2>當日成交量排行</h2><div class="small muted" id="rankMeta">載入中…</div></div>
+          <div class="btn-row" style="align-items:center">
+            <div class="seg" id="rankMkt"><button data-m="all" class="on">全部</button><button data-m="T">上市</button><button data-m="O">上櫃</button></div>
+            <div class="seg" id="rankKind"><button data-k="all" class="on">股票＋ETF</button><button data-k="stock">只看股票</button><button data-k="etf">只看 ETF</button></div>
+            <div class="field" style="width:150px"><input id="rankFilter" type="search" placeholder="篩選代號／名稱" aria-label="篩選排行" /></div>
+          </div>
+        </div>
+        <div class="rank-wrap"><table id="rankTable"></table></div>
+        <div class="btn-row" style="justify-content:center;margin-top:12px"><button class="btn sm" id="rankMore" hidden>顯示更多</button></div>
       </div>
     </section>
 

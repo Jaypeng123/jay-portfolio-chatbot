@@ -61,6 +61,19 @@ export function searchStocks(q, limit = 8) {
   return out;
 }
 
+/* ---------- 個股資料來源：FinMind 直連 → 網站內快照 data/stocks/<code>.json → 示範 ---------- */
+export const stockSource = {}; // code → { kind: 'live'|'snapshot'|'demo', date }
+const snapCache = new Map();
+function snapshot(code) {
+  if (!snapCache.has(code)) {
+    snapCache.set(code, fetch(`data/stocks/${encodeURIComponent(code)}.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+  }
+  return snapCache.get(code);
+}
+const parseBars = (rows) => rows.filter((r) => r.close > 0).map((r) => ({
+  date: r.date, open: r.open, high: r.max, low: r.min, close: r.close, volume: Math.round(r.Trading_Volume / 1000),
+}));
+
 /* ---------- 日 K ---------- */
 export async function getBars(code) {
   return cached(`bars:${code}`, 5 * 60e3, async () => {
@@ -69,19 +82,52 @@ export async function getBars(code) {
         const rows = await finmind('TaiwanStockPrice', { data_id: code, start_date: daysAgo(400) });
         if (rows.length) {
           source.mode = 'live';
-          return rows.filter((r) => r.close > 0).map((r) => ({
-            date: r.date, open: r.open, high: r.max, low: r.min, close: r.close,
-            volume: Math.round(r.Trading_Volume / 1000),
-          }));
+          const bars = parseBars(rows);
+          stockSource[code] = { kind: 'live', date: bars[bars.length - 1]?.date };
+          return bars;
         }
       } catch (e) { source.error = e.message; }
+      const snap = await snapshot(code);
+      if (snap?.price?.length) {
+        source.mode = 'live';
+        const bars = parseBars(snap.price);
+        stockSource[code] = { kind: 'snapshot', date: bars[bars.length - 1]?.date };
+        return bars;
+      }
     }
-    source.mode = 'demo';
-    return demo(code).bars;
+    if (source.mode !== 'live') source.mode = 'demo';
+    stockSource[code] = { kind: 'demo' };
+    // 示範走勢對齊全市場檔的真實收盤價，避免圖與報價差距過大
+    const bars = demo(code).bars;
+    const m = state.settings.useDemo ? null : (await getMarket())?.byCode[code];
+    const lastClose = bars[bars.length - 1]?.close;
+    if (!m || !lastClose) return bars;
+    const f = m.close / lastClose, r = (v) => +(v * f).toFixed(2);
+    return bars.map((b) => ({ ...b, open: r(b.open), high: r(b.high), low: r(b.low), close: r(b.close) }));
   });
 }
 
 /* ---------- 籌碼：外資 / 投信 / 自營 / 主力(估) / 散戶(融資) ，單位：張 ---------- */
+function parseChips(inst, margin) {
+  const byDate = {};
+  for (const r of inst) {
+    const d = (byDate[r.date] ||= { date: r.date, foreign: 0, trust: 0, dealer: 0 });
+    const net = (r.buy - r.sell) / 1000;
+    if (r.name.startsWith('Foreign')) d.foreign += net;
+    else if (r.name === 'Investment_Trust') d.trust += net;
+    else if (r.name.startsWith('Dealer')) d.dealer += net;
+  }
+  for (const m of margin || []) {
+    const d = byDate[m.date];
+    if (d) {
+      d.retail = m.MarginPurchaseTodayBalance - m.MarginPurchaseYesterdayBalance;
+      d.marginBal = m.MarginPurchaseTodayBalance;
+      d.shortBal = m.ShortSaleTodayBalance;
+    }
+  }
+  return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date)).map(finishChip);
+}
+
 export async function getChips(code) {
   return cached(`chips:${code}`, 10 * 60e3, async () => {
     if (!state.settings.useDemo) {
@@ -91,26 +137,10 @@ export async function getChips(code) {
           finmind('TaiwanStockInstitutionalInvestorsBuySell', { data_id: code, start_date: start }),
           finmind('TaiwanStockMarginPurchaseShortSale', { data_id: code, start_date: start }).catch(() => []),
         ]);
-        if (inst.length) {
-          const byDate = {};
-          for (const r of inst) {
-            const d = (byDate[r.date] ||= { date: r.date, foreign: 0, trust: 0, dealer: 0 });
-            const net = (r.buy - r.sell) / 1000;
-            if (r.name.startsWith('Foreign')) d.foreign += net;
-            else if (r.name === 'Investment_Trust') d.trust += net;
-            else if (r.name.startsWith('Dealer')) d.dealer += net;
-          }
-          for (const m of margin) {
-            const d = byDate[m.date];
-            if (d) {
-              d.retail = m.MarginPurchaseTodayBalance - m.MarginPurchaseYesterdayBalance;
-              d.marginBal = m.MarginPurchaseTodayBalance;
-              d.shortBal = m.ShortSaleTodayBalance;
-            }
-          }
-          return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date)).map(finishChip);
-        }
+        if (inst.length) return parseChips(inst, margin);
       } catch (e) { source.error = e.message; }
+      const snap = await snapshot(code);
+      if (snap?.inst?.length) return parseChips(snap.inst, snap.margin);
     }
     return demo(code).chips;
   });
@@ -145,12 +175,35 @@ export async function getQuotes(codes) {
       }
     } catch (e) { source.error = `即時報價：${e.message}`; }
   }
+  const mkt = state.settings.useDemo ? null : await getMarket();
   await Promise.all(codes.filter((c) => !out[c]).map(async (c) => {
     const bars = await getBars(c);
     const b = bars[bars.length - 1], p = bars[bars.length - 2] || b;
-    if (b) out[c] = { price: b.close, prev: p.close, open: b.open, high: b.high, low: b.low, volume: b.volume, time: b.date, realtime: false };
+    const m = mkt?.byCode[c];
+    if (m && (!b || stockSource[c]?.kind === 'demo' || mkt.date >= b.date)) {
+      out[c] = { price: m.close, prev: m.prev, open: m.open ?? m.close, high: m.high ?? m.close, low: m.low ?? m.close, volume: m.volume, time: mkt.date, realtime: false };
+    } else if (b) {
+      out[c] = { price: b.close, prev: p.close, open: b.open, high: b.high, low: b.low, volume: b.volume, time: b.date, realtime: false };
+    }
   }));
   return out;
+}
+
+/* ---------- 全市場當日行情（GitHub Actions 每日收盤後產生 data/market.json） ---------- */
+export async function getMarket() {
+  return cached('market', 5 * 60e3, async () => {
+    try {
+      const res = await fetch(`data/market.json?t=${Math.floor(Date.now() / 300e3)}`);
+      if (!res.ok) return null;
+      const j = await res.json();
+      const rows = j.rows.map(([code, name, market, close, change, volume, value, open, high, low, trades]) => {
+        const prev = close - change;
+        return { code, name, market, close, change, pct: prev ? change / prev : 0, prev, volume, value, open, high, low, trades };
+      });
+      for (const r of rows) if (!names[r.code]) names[r.code] = r.name;
+      return { date: j.date, updated: j.updated, rows, byCode: Object.fromEntries(rows.map((r) => [r.code, r])) };
+    } catch (_) { return null; }
+  });
 }
 
 export function clearCache() { cache.clear(); }

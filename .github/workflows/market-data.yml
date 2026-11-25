@@ -1,0 +1,40 @@
+name: 更新市場資料
+
+# 收盤後抓上市＋上櫃全部個股當日成交，寫入 stock-app/data/market.json（App 的成交量排行用）
+on:
+  schedule:
+    # 台灣時間週一至週五 14:45、16:15、18:15（交易所資料可能較晚更新，所以抓三次）
+    - cron: '45 6 * * 1-5'
+    - cron: '15 8 * * 1-5'
+    - cron: '15 10 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: market-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 抓取證交所、櫃買中心資料
+        run: node stock-app/scripts/fetch-market.mjs
+      - name: 有變動才提交
+        run: |
+          git add stock-app/data/market.json
+          if git diff --cached --quiet; then
+            echo "資料沒有變動"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(data): 更新市場資料 $(date -u +%F)"
+          git push

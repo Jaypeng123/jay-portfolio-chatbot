@@ -1,5 +1,5 @@
 import { state, persist, uid, DEFAULT_SETTINGS } from './store.js';
-import { getBars, getChips, getQuotes, loadNames, nameOf, searchStocks, source, clearCache } from './data.js';
+import { getBars, getChips, getQuotes, getMarket, loadNames, nameOf, searchStocks, source, stockSource, clearCache } from './data.js';
 import { signals, streak, sma, kd, rsi, macd } from './indicators.js';
 import * as C from './calc.js';
 import { ALERT_TYPES, describe, checkAll, notify, exportConfig } from './alerts.js';
@@ -59,6 +59,16 @@ function updateSourceBadge() {
   if (source.mode === 'live') { b.className = 'src-badge live'; b.textContent = rt ? '● 即時行情' : '● 盤後資料'; }
   else if (source.mode === 'demo') { b.className = 'src-badge demo'; b.textContent = '示範資料'; b.title = source.error || '已開啟示範資料'; }
 }
+
+/* ===================== 釘選 ===================== */
+const isPinned = (c) => state.watchlist.includes(c);
+function togglePin(c) {
+  state.watchlist = isPinned(c) ? state.watchlist.filter((x) => x !== c) : [...state.watchlist, c];
+  persist('watchlist');
+  toast(isPinned(c) ? `已釘選 ${c} ${nameOf(c)}` : `已取消釘選 ${c}`);
+  return isPinned(c);
+}
+const starBtn = (c) => `<button class="star ${isPinned(c) ? 'on' : ''}" data-pin="${esc(c)}" aria-pressed="${isPinned(c)}" title="${isPinned(c) ? '取消釘選' : '加入釘選'}">${isPinned(c) ? '★' : '☆'}</button>`;
 
 /* ===================== 主題 ===================== */
 function applyTheme() {
@@ -157,11 +167,11 @@ async function renderHome() {
         <td class="n ${cls(l.trust)}">${money(l.trust)}</td>
         <td class="n hide-sm">${st > 0 ? `<span class="up">連買 ${st}</span>` : st < 0 ? `<span class="down">連賣 ${-st}</span>` : '—'}</td>
         <td class="n">${scorePill(sig.score)}</td>
-        <td><button class="btn sm ghost" data-rm="${esc(code)}" title="移除自選">✕</button></td></tr>`;
-    }).join('')}</tbody>` : `<tbody><tr><td><div class="empty"><b>還沒有自選股</b>用上方搜尋加入</div></td></tr></tbody>`;
+        <td>${starBtn(code)}</td></tr>`;
+    }).join('')}</tbody>` : `<tbody><tr><td><div class="empty"><b>還沒有釘選股</b>到「個股籌碼」的成交量排行按 ☆ 加入</div></td></tr></tbody>`;
   $('#watchTable').onclick = (e) => {
-    const rm = e.target.closest('[data-rm]');
-    if (rm) { e.stopPropagation(); state.watchlist = state.watchlist.filter((c) => c !== rm.dataset.rm); persist('watchlist'); renderHome(); return; }
+    const pin = e.target.closest('[data-pin]');
+    if (pin) { e.stopPropagation(); togglePin(pin.dataset.pin); renderHome(); return; }
     const tr = e.target.closest('tr[data-code]');
     if (tr) goStock(tr.dataset.code);
   };
@@ -248,7 +258,12 @@ async function renderStock() {
   $('#sMeta').innerHTML = q ? `
     <span>開<b>${fmt(q.open)}</b></span><span>高<b class="up">${fmt(q.high)}</b></span><span>低<b class="down">${fmt(q.low)}</b></span>
     <span>昨收<b>${fmt(q.prev)}</b></span><span>量<b>${fmt0(q.volume)} 張</b></span><span>${q.realtime ? '即時' : '資料日'}<b>${esc(q.time)}</b></span>` : '';
-  $('#sWatch').textContent = state.watchlist.includes(code) ? '✓ 已自選' : '＋ 自選';
+  syncStar();
+  const src = stockSource[code];
+  $('#sMeta').insertAdjacentHTML('beforeend', `<span>資料<b>${
+    src?.kind === 'live' ? 'FinMind 即時連線' : src?.kind === 'snapshot' ? `快照（${esc(src.date)}）` : '<span style="color:var(--warn)">示範走勢（此股暫無真實 K 線）</span>'}</b></span>`);
+  renderPinBar();
+  renderRank();
 
   // ----- 圖表 -----
   destroyCharts();
@@ -360,13 +375,73 @@ $('#chipSeg').onclick = async (e) => {
   $$('#chipSeg button').forEach((x) => x.classList.toggle('on', x === b));
   renderChipTable(await getChips(current.code));
 };
-$('#sWatch').onclick = () => {
-  const c = current.code;
-  state.watchlist = state.watchlist.includes(c) ? state.watchlist.filter((x) => x !== c) : [...state.watchlist, c];
-  persist('watchlist');
-  $('#sWatch').textContent = state.watchlist.includes(c) ? '✓ 已自選' : '＋ 自選';
-  toast(state.watchlist.includes(c) ? `已加入自選：${c}` : `已移除自選：${c}`);
+function syncStar() {
+  const on = isPinned(current.code);
+  $('#sWatch').textContent = on ? '★ 已釘選' : '☆ 釘選';
+  $('#sWatch').setAttribute('aria-pressed', on);
+}
+$('#sWatch').onclick = () => { togglePin(current.code); syncStar(); renderPinBar(); renderRank(); };
+
+async function renderPinBar() {
+  const codes = state.watchlist;
+  if (!codes.length) { $('#pinBar').innerHTML = ''; return; }
+  const q = await getQuotes(codes);
+  $('#pinBar').innerHTML = `<span class="pin-label">★ 釘選</span>` + codes.map((c) => {
+    const x = q[c], chg = x ? (x.price - x.prev) / x.prev : 0;
+    return `<button class="pin-chip ${c === current.code ? 'on' : ''}" data-code="${esc(c)}"><b>${esc(c)}</b><span class="muted">${esc(nameOf(c))}</span><span class="${cls(chg)}">${fmt(x?.price)} ${pct(chg)}</span></button>`;
+  }).join('');
+}
+$('#pinBar').onclick = (e) => { const b = e.target.closest('[data-code]'); if (b) goStock(b.dataset.code); };
+
+/* ----- 當日成交量排行 ----- */
+const rank = { mkt: 'all', kind: 'all', q: '', limit: 50 };
+async function renderRank() {
+  const m = await getMarket();
+  if (!m) {
+    $('#rankMeta').textContent = '尚未產生全市場資料';
+    $('#rankTable').innerHTML = '<tbody><tr><td><div class="empty"><b>還沒有排行資料</b>請在 GitHub 的 Actions 頁執行「更新市場資料」，或本機執行 node stock-app/scripts/fetch-market.mjs</div></td></tr></tbody>';
+    $('#rankMore').hidden = true;
+    return;
+  }
+  const q = rank.q.trim().toUpperCase();
+  const rows = m.rows.filter((r) => (rank.mkt === 'all' || r.market === rank.mkt)
+    && (rank.kind === 'all' || (rank.kind === 'etf') === /^00/.test(r.code))
+    && (!q || r.code.startsWith(q) || r.name.toUpperCase().includes(q)));
+  const shown = rows.slice(0, rank.limit);
+  const max = shown[0]?.volume || 1;
+  $('#rankMeta').textContent = `資料日 ${m.date}・共 ${rows.length.toLocaleString()} 檔・來源：證交所、櫃買中心（收盤後更新）`;
+  $('#rankTable').innerHTML = `<thead><tr><th class="rank-no">#</th><th>股票</th><th class="n">收盤</th><th class="n">漲跌</th><th class="n">漲跌幅</th><th class="n">成交量（張）</th><th class="n hide-sm">成交值（億）</th><th></th></tr></thead>
+    <tbody>${shown.map((r, i) => {
+      const limit = r.pct >= 0.095 ? '<span class="pill up">漲停</span>' : r.pct <= -0.095 ? '<span class="pill down">跌停</span>' : '';
+      return `<tr class="click ${r.code === current.code ? 'current' : ''}" data-code="${esc(r.code)}">
+        <td class="rank-no">${i + 1}</td>
+        <td><span class="code">${esc(r.code)}</span><span class="name">${esc(r.name)}</span><span class="mkt">${r.market === 'T' ? '市' : '櫃'}</span></td>
+        <td class="n ${cls(r.change)}"><b>${fmt(r.close)}</b></td>
+        <td class="n ${cls(r.change)}">${r.change > 0 ? '▲' : r.change < 0 ? '▼' : ''}${fmt(Math.abs(r.change))}</td>
+        <td class="n">${limit || `<span class="${cls(r.change)}">${pct(r.pct)}</span>`}</td>
+        <td class="n">${fmt0(r.volume)}<span class="vol-bar" style="width:${Math.max(4, (r.volume / max) * 100)}%"></span></td>
+        <td class="n hide-sm">${fmt(r.value / 1e8)}</td>
+        <td>${starBtn(r.code)}</td></tr>`;
+    }).join('')}</tbody>`;
+  $('#rankMore').hidden = rows.length <= rank.limit;
+  $('#rankMore').textContent = `顯示更多（還有 ${(rows.length - rank.limit).toLocaleString()} 檔）`;
+}
+$('#rankTable').onclick = (e) => {
+  const pin = e.target.closest('[data-pin]');
+  if (pin) { togglePin(pin.dataset.pin); syncStar(); renderPinBar(); renderRank(); return; }
+  const tr = e.target.closest('tr[data-code]');
+  if (tr) goStock(tr.dataset.code);
 };
+const segPick = (sel, key, attr) => { $(sel).onclick = (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  rank[key] = b.dataset[attr]; rank.limit = 50;
+  $$(`${sel} button`).forEach((x) => x.classList.toggle('on', x === b));
+  renderRank();
+}; };
+segPick('#rankMkt', 'mkt', 'm');
+segPick('#rankKind', 'kind', 'k');
+$('#rankFilter').addEventListener('input', (e) => { rank.q = e.target.value; rank.limit = 50; renderRank(); });
+$('#rankMore').onclick = () => { rank.limit += 100; renderRank(); };
 $('#sAlert').onclick = () => { location.hash = 'alerts'; setTimeout(() => { $('#alertForm [name=code]').value = current.code; $('#alertForm [name=value]').focus(); }, 50); };
 $('#sCalc').onclick = () => { calcPrefill = { code: current.code, price: quotes[current.code]?.price }; calcMode = 'pnl'; location.hash = 'calc'; };
 $('#sTrade').onclick = () => openTradeDialog({ code: current.code, price: quotes[current.code]?.price });
@@ -653,7 +728,7 @@ $('#refreshBtn').onclick = () => { clearCache(); render(); toast('已重新整�
   applyTheme();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.code) goStock(e.data.code); });
-  await loadNames();
+  await Promise.all([loadNames(), getMarket()]);
   $('#codeList').innerHTML = Object.entries({ ...Object.fromEntries(state.watchlist.map((c) => [c, nameOf(c)])) })
     .map(([c, n]) => `<option value="${esc(c)}">${esc(n)}</option>`).join('');
   route();
